@@ -18,6 +18,7 @@
     "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.11",
     "openai": "^4.28.0",
+    "pg": "^8.23.0",
     "twilio": "^5.0.1"
   },
   "engines": {
