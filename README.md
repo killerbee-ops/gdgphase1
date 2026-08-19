@@ -40,45 +40,6 @@ GuardianLink is a discreet, production-grade personal safety and abuse-response 
 
 ---
 
-## 🛠️ Production Architecture & API Setup
-
-To run GuardianLink with real production dispatch and database persistence, supply the following keys in your environment configurations:
-
-### 1. Database Persistence (Supabase SQL)
-Initialize the PostgreSQL tables by running the contents of [`schema.sql`](file:///d:/promptwargdgmmdu/schema.sql) in your Supabase SQL editor, then supply:
-```env
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
-```
-
-### 2. Twilio SMS Integration
-Allows dispatching real-time SMS alerts to contacts containing masked GPS coordinates and live share links:
-```env
-TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-TWILIO_AUTH_TOKEN=your-twilio-auth-token
-TWILIO_FROM_NUMBER=+15551234567
-```
-
-### 3. SMTP Email Dispatch (e.g. Gmail)
-Sends rich security notifications during distress alerts:
-```env
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_SECURE=false
-SMTP_USER=your-email@gmail.com
-SMTP_PASS=your-gmail-app-password
-SMTP_FROM_EMAIL=your-email@gmail.com
-```
-
-### 4. Generative AI Classification
-Supply either key to run the live pattern distress analyzer:
-```env
-GEMINI_API_KEY=your-gemini-api-key
-OPENAI_API_KEY=your-openai-api-key
-```
-
----
-
 ## 🧪 Automated Verification Suite
 
 GuardianLink comes equipped with a comprehensive integration test suite. Verify routing logic, safe-zones, public sharing, and unresponsive auto-escalation by running:
