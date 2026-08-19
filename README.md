@@ -6,6 +6,17 @@ GuardianLink is a discreet, production-grade personal safety and abuse-response 
 
 ---
 
+## 🌟 Core Web Application Features
+
+- **Disguised Utilities Calculator**: A fully functional math calculator layout that masks the entry gate to prevent abusers or unauthorized individuals from detecting the app's safety dashboard.
+- **Calculator PIN Unlock**: Enter your secret code (`1234` or custom PIN) followed by `=` on the calculator keys to access the hidden security dashboard.
+- **Silent Gesture Triggers**: Triple-tap the screen in 1 second, or press and hold the `=` key for 3 seconds to trigger the alarm without typing the PIN.
+- **Social Escape Call**: Simulate realistic incoming phone calls with customized caller names and ringtones to exit uncomfortable situations.
+- **Safe Zones (Geofencing)**: Define custom safe regions (e.g., Home, Work, College) which log silent safety checks when entered or exited.
+- **Incident Timeline Logs**: Maintains a tamper-proof local log recording classifications, map coordinate locations, and chronological escalation steps.
+
+---
+
 ## 🚀 Advanced Production Capabilities
 
 ### 1. Material Design 3 Interface
