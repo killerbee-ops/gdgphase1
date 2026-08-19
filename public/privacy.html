@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GuardianLink - Privacy Policy</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      overflow-y: auto;
+      background-color: #f8fafc;
+      color: #0f172a;
+      padding: 32px 16px;
+    }
+    .privacy-container {
+      max-width: 650px;
+      margin: 0 auto;
+      background-color: #ffffff;
+      padding: 32px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .privacy-header {
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 16px;
+      margin-bottom: 24px;
+      text-align: left;
+    }
+    .privacy-header h1 {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -0.025em;
+    }
+    .privacy-header p {
+      color: #64748b;
+      font-size: 0.88rem;
+      margin-top: 4px;
+    }
+    .section-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin-top: 24px;
+      margin-bottom: 10px;
+      text-align: left;
+    }
+    .privacy-content p {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 16px;
+      text-align: left;
+    }
+    .privacy-content ul {
+      margin-bottom: 16px;
+      padding-left: 20px;
+      text-align: left;
+    }
+    .privacy-content li {
+      font-size: 0.88rem;
+      line-height: 1.6;
+      color: #334155;
+      margin-bottom: 8px;
+      list-style-type: disc;
+    }
+    .disclaimer-badge {
+      background-color: #f1f5f9;
+      border: 1px dashed #cbd5e1;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      color: #475569;
+      margin-top: 32px;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .btn-back-container {
+      margin-top: 24px;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <div class="privacy-container">
+    
+    <header class="privacy-header">
+      <h1>Privacy Policy</h1>
+      <p>Last updated: August 2026</p>
+    </header>
+
+    <div class="privacy-content">
+      
+      <p>GuardianLink is committed to protecting the privacy and safety of our users. This document outlines how we collect, process, and protect your information in plain, straightforward language.</p>
+
+      <h2 class="section-title">1. What Data We Collect</h2>
+      <p>To deliver emergency safety services, we collect and process the following information:</p>
+      <ul>
+        <li><strong>Location Data:</strong> Your GPS coordinates (latitude, longitude, and accuracy radius) are captured <em>only</em> when an emergency SOS alert is triggered or during active commutes. We do not track your location continuously in the background.</li>
+        <li><strong>Trusted Contact Info:</strong> The names, phone numbers, and email addresses of the 1–3 guardians you explicitly add to your Trusted Circle.</li>
+        <li><strong>Voice/Audio Transcripts:</strong> If you choose to enable Voice Distress Listening Mode, our app processes microphone audio locally to detect alert keywords. Raw audio is never stored or sent to our servers. Only the transcribed text of the conversation context is sent to the server for distress evaluation.</li>
+        <li><strong>Incident Logs:</strong> A record of all triggered alerts, including timestamps, location coordinates trails, and resolution codes (safe PIN or safe-word check-ins).</li>
+        <li><strong>Account Data:</strong> Email address and secure password hashes used to maintain your private account session.</li>
+      </ul>
+
+      <h2 class="section-title">2. Why We Collect It</h2>
+      <p>All data processed by GuardianLink is used exclusively to facilitate your safety and alert your trusted contacts. We do not use your information for profiling, behavioral targeting, advertising, or marketing campaigns. We do not sell your personal data to anyone.</p>
+
+      <h2 class="section-title">3. Who We Share It With</h2>
+      <p>We only share your emergency coordinates and status details with:</p>
+      <ul>
+        <li><strong>Your Trusted Contacts:</strong> Dispatched via SMS or Email notifications immediately when an alarm is active.</li>
+        <li><strong>Twilio & SMTP Email Nodes:</strong> Third-party messaging platforms used to deliver physical alert dispatches.</li>
+        <li><strong>Gemini/OpenAI APIs:</strong> Secure large language model providers used to evaluate speech transcripts for distress. Only text transcripts are sent for AI analysis; no audio streams are shared.</li>
+        <li><strong>Supabase:</strong> Our database provider hosting secure database services.</li>
+      </ul>
+      <p>We do not share any data with advertisers, third-party trackers, or marketing platforms.</p>
+
+      <h2 class="section-title">4. Data Retention & User Rights</h2>
+      <p>You have full control over your safety data. You can access the settings panel at any time to:</p>
+      <ul>
+        <li>View, update, or completely delete your trusted contacts directory.</li>
+        <li>View and clear your secure incident log history.</li>
+        <li>Disable microphone permissions and background voice monitoring.</li>
+        <li>Request permanent deletion of your account and all associated data records.</li>
+      </ul>
+
+      <h2 class="section-title">5. Consent & Permissions</h2>
+      <p>Microphone monitoring and GPS location tracking require explicit browser permissions. GuardianLink will never attempt to capture location coordinates or access device microphone streams without prompting you for consent first.</p>
+
+      <h2 class="section-title">6. Security Measures</h2>
+      <p>All safety alerts and user sessions are transmitted securely using HTTPS. Database storage is protected under Supabase authentication policies ensuring user records are isolated. Only you can view your parameters and incidents history.</p>
+
+      <h2 class="section-title">7. Contact</h2>
+      <p>If you have any questions, comments, or data erasure concerns regarding this Privacy Policy, please contact our team at: <a href="mailto:privacy@guardianlink.app" style="color:var(--accent-color); font-weight:bold;">privacy@guardianlink.app</a></p>
+
+      <div class="disclaimer-badge">
+        <strong>Notice:</strong> This is a prototype privacy policy for demonstration purposes.
+      </div>
+
+    </div>
+
+    <div class="btn-back-container">
+      <a href="/" class="btn btn-secondary" style="text-decoration:none; display:inline-flex; align-items:center; height:38px;">
+        ← Back to App
+      </a>
+    </div>
+
+  </div>
+</body>
+</html>

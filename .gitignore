@@ -1,0 +1,8 @@
+node_modules/
+.env
+local_db.json
+*.log
+.system_generated/
+.gemini/
+antigravity/
+C:/Users/tjasw/.gemini/antigravity/

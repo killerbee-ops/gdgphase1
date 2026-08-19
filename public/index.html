@@ -1,0 +1,597 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GuardianLink - Personal Safety Network</title>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- PWA Setup & Capability Meta Tags -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="/icons/icon-192.jpg">
+</head>
+<body>
+  <!-- Toast Banners -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- ================= AUTHENTICATION MODAL OVERLAY ================= -->
+  <div id="auth-overlay" class="auth-overlay">
+    <div class="auth-box">
+      <div class="auth-brand">
+        <svg class="icon icon-shield" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h1>GuardianLink</h1>
+      </div>
+      
+      <!-- Login View -->
+      <div id="auth-login-view" class="auth-form-view">
+        <h2>Sign In</h2>
+        <p class="auth-subtitle">Access your isolated personal safety parameters.</p>
+        <form id="form-login">
+          <div class="form-group">
+            <label for="login-email">Email Address</label>
+            <input type="email" id="login-email" required placeholder="E.g. name@domain.com">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" required placeholder="Enter password">
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-login-submit">Sign In</button>
+        </form>
+        <p class="auth-switch-text">New to GuardianLink? <span id="switch-to-register">Create Account</span></p>
+      </div>
+
+      <!-- Register View -->
+      <div id="auth-register-view" class="auth-form-view hidden">
+        <h2>Create Safety Profile</h2>
+        <p class="auth-subtitle">Enter details to establish a secure database identity.</p>
+        <form id="form-register">
+          <div class="form-group">
+            <label for="register-email">Email Address</label>
+            <input type="email" id="register-email" required placeholder="E.g. name@domain.com">
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label>
+            <input type="password" id="register-password" required placeholder="Minimum 6 characters">
+          </div>
+          <button type="submit" class="btn btn-primary" id="btn-register-submit">Create Account</button>
+        </form>
+        <p class="auth-switch-text">Already registered? <span id="switch-to-login">Sign In</span></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MAIN LAYOUT WRAPPER ================= -->
+  <div id="dashboard-app" class="app-container hidden">
+    
+    <!-- Left Sidebar (Desktop Navigation) -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <svg class="icon icon-shield" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>GuardianLink</span>
+      </div>
+      <nav class="sidebar-menu">
+        <button class="menu-item active" data-tab="dashboard">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+          <span>Dashboard</span>
+        </button>
+        <button class="menu-item" data-tab="contacts">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          <span>Trusted Circle</span>
+        </button>
+        <button class="menu-item" data-tab="logs">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+          <span>Incident Logs</span>
+        </button>
+        <button class="menu-item" data-tab="settings">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.5 1z"></path></svg>
+          <span>Settings</span>
+        </button>
+      </nav>
+      <div class="sidebar-footer">
+        <a href="/privacy.html" class="menu-item" style="text-decoration:none; margin-bottom:8px; display:flex; align-items:center; gap:12px; color:var(--text-muted); font-size:0.84rem; font-weight:500;">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>Privacy Policy</span>
+        </a>
+        <button id="btn-logout" class="menu-item btn-logout-link">
+          <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          <span>Logout</span>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Mobile Bottom Tab Bar -->
+    <nav class="mobile-bottom-nav">
+      <button class="bottom-nav-item active" data-tab="dashboard">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+        <span>Dashboard</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="contacts">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        <span>Circle</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="logs">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+        <span>Logs</span>
+      </button>
+      <button class="bottom-nav-item" data-tab="settings">
+        <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.5 1z"></path></svg>
+        <span>Settings</span>
+      </button>
+    </nav>
+
+    <!-- Main View Content Area -->
+    <main class="app-main-content">
+      
+      <!-- Top Navigation Status Header -->
+      <header class="app-top-header">
+        <div class="header-title-mobile">
+          <svg class="icon icon-shield" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <h2>GuardianLink</h2>
+        </div>
+        <div class="system-status-indicators">
+          <div class="status-indicator">
+            <span class="status-dot-label">DB Status:</span>
+            <span class="status-value-text" id="status-supabase">Checking...</span>
+          </div>
+          <div class="status-indicator">
+            <span class="status-dot-label">SMS Link:</span>
+            <span class="status-value-text" id="status-sms">Checking...</span>
+          </div>
+          <div class="status-indicator">
+            <span class="status-dot-label">Email Node:</span>
+            <span class="status-value-text" id="status-email">Checking...</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Views (Toggled via Tabs) -->
+      <div class="view-wrapper">
+
+        <!-- 1. DASHBOARD VIEW -->
+        <section id="view-dashboard" class="content-view">
+          <div class="view-header">
+            <h2>Safety Control Room</h2>
+            <p>Immediate access to alert dispatches and environment monitors.</p>
+          </div>
+
+          <!-- Status Indicator Card -->
+          <div class="status-card" id="state-card">
+            <div class="status-card-header">
+              <span class="status-badge-dot green" id="state-indicator-dot"></span>
+              <span class="status-badge-text" id="state-indicator-text">System Active & Safe</span>
+            </div>
+            <p class="status-card-desc" id="state-indicator-subtext">Continuous monitoring active. You are protected.</p>
+          </div>
+
+          <!-- Central SOS Trigger Panel -->
+          <div class="sos-trigger-pane">
+            <button class="btn-sos-pulse-engine" id="btn-sos-trigger">
+              <svg class="icon-sos-warning" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+              <span class="sos-main-txt">SOS</span>
+              <span class="sos-sub-txt">Tap or Hold 3s</span>
+            </button>
+          </div>
+
+          <!-- Government Emergency Helplines Section (Part B) -->
+          <div class="detail-card government-helplines-card" style="margin-bottom: 24px; border-left: 4px solid #ef4444;">
+            <div class="card-title-text" style="margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+              <svg class="icon" style="stroke:#ef4444;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+              <h3 style="color:#ef4444;">Government Emergency Helplines</h3>
+            </div>
+            
+            <div class="helpline-grid">
+              <!-- Emergency Group -->
+              <div class="helpline-category">
+                <h4>Emergency (Top Priority)</h4>
+                <div class="helpline-buttons">
+                  <a href="tel:112" class="btn btn-emergency-call">🚨 112 - ERSS National Emergency</a>
+                  <a href="tel:100" class="btn btn-secondary-call">📞 100 - Police</a>
+                  <a href="tel:101" class="btn btn-secondary-call">📞 101 - Fire</a>
+                  <a href="tel:108" class="btn btn-secondary-call">📞 108 - Disaster / Ambulance</a>
+                  <a href="tel:102" class="btn btn-secondary-call">📞 102 - Free Govt Ambulance</a>
+                </div>
+              </div>
+
+              <!-- Women & Child Safety Group -->
+              <div class="helpline-category">
+                <h4>Women & Child Safety</h4>
+                <div class="helpline-buttons">
+                  <a href="tel:1091" class="btn btn-secondary-call">📞 1091 - Women Helpline (Distress)</a>
+                  <a href="tel:181" class="btn btn-secondary-call">📞 181 - Women in Distress</a>
+                  <a href="tel:1098" class="btn btn-secondary-call">📞 1098 - Child Helpline</a>
+                  <a href="tel:14567" class="btn btn-secondary-call">📞 14567 - Senior Citizen Helpline</a>
+                </div>
+              </div>
+
+              <!-- Support & Cyber Group -->
+              <div class="helpline-category">
+                <h4>Mental Health & Cyber Fraud</h4>
+                <div class="helpline-buttons">
+                  <a href="tel:14416" class="btn btn-secondary-call">📞 14416 - Tele-MANAS (Mental Health)</a>
+                  <a href="tel:1930" class="btn btn-secondary-call">📞 1930 - Cybercrime Helpline</a>
+                  <a href="tel:155260" class="btn btn-secondary-call">📞 155260 - Cyber Financial Fraud</a>
+                </div>
+              </div>
+            </div>
+
+            <p class="disclaimer-text" style="font-size:0.7rem; color:var(--text-muted); margin-top:14px; border-top: 1px solid var(--border-color); padding-top:8px;">
+              Disclaimer: Sourced from official Government of India portals (<a href="https://112.gov.in" target="_blank" style="text-decoration:underline;">112.gov.in</a> and <a href="https://ncw.nic.in" target="_blank" style="text-decoration:underline;">ncw.gov.in</a>). Helpline availability and response times may vary by state jurisdiction.
+            </p>
+          </div>
+
+          <!-- Grid row for monitors -->
+          <div class="dashboard-grid">
+            
+            <!-- Voice distress card -->
+            <div class="detail-card">
+              <div class="card-title-row">
+                <div class="card-title-text">
+                  <svg class="icon icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+                  <h3>Voice Distress Monitor</h3>
+                </div>
+                <label class="toggle-switch">
+                  <input type="checkbox" id="check-voice-trigger">
+                  <span class="toggle-slider"></span>
+                </label>
+              </div>
+              <p class="detail-card-desc">GuardianLink continuously analyzes speech locally and triggers silent alarm on distress keywords.</p>
+              
+              <!-- Waveform bars -->
+              <div class="audio-waveform-row hidden" id="waveform-container">
+                <div class="voice-wave-bars">
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                  <span class="wave-bar"></span>
+                </div>
+                <div class="waveform-label">Listening state: <span id="status-mic">Off</span></div>
+              </div>
+
+              <!-- Transcript log -->
+              <div class="transcript-box-area hidden" id="voice-transcript-section">
+                <h4>Speech Transcription Feed</h4>
+                <div class="transcript-live-pane" id="live-transcript-log">
+                  <span class="text-muted">Awaiting background conversation...</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Social escape card -->
+            <div class="detail-card">
+              <div class="card-title-text" style="margin-bottom:12px;">
+                <svg class="icon icon-muted" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+                <h3>Social Escape Call</h3>
+              </div>
+              <p class="detail-card-desc">Simulate an incoming phone call to create a plausible exit excuse from uncomfortable scenarios.</p>
+              
+              <div class="input-horizontal-group" style="margin-top:16px;">
+                <div class="form-group" style="flex:1; margin-bottom:0;">
+                  <select id="select-call-delay">
+                    <option value="0">Immediately</option>
+                    <option value="5">In 5 Seconds</option>
+                    <option value="10">In 10 Seconds</option>
+                    <option value="30">In 30 Seconds</option>
+                    <option value="60">In 1 Minute</option>
+                  </select>
+                </div>
+                <button id="btn-schedule-call" class="btn btn-secondary">Schedule Call</button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- 2. TRUSTED CIRCLE VIEW -->
+        <section id="view-contacts" class="content-view hidden">
+          <div class="view-header">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <h2>Trusted Circle</h2>
+                <p>Contacts immediately alerted when coordinates are dispatched.</p>
+              </div>
+              <span class="contacts-count-badge" id="contacts-count">0 / 3</span>
+            </div>
+          </div>
+
+          <div class="contacts-view-layout">
+            <!-- Contact list -->
+            <div class="contacts-list-container" id="contacts-list">
+              <div class="empty-contacts-card" id="contacts-empty-state">
+                <svg class="icon-empty" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                <h4>Your Trusted Circle is empty</h4>
+                <p>Add 1 to 3 reliable contacts who will receive emergency coordinates.</p>
+              </div>
+            </div>
+
+            <!-- Contact form -->
+            <div class="contact-editor-pane">
+              <div class="form-container-card">
+                <h3 id="contact-form-title">Add Trusted Contact</h3>
+                <input type="hidden" id="input-contact-id">
+                
+                <div class="form-group">
+                  <label for="input-contact-name">Full Name</label>
+                  <input type="text" id="input-contact-name" placeholder="E.g. Aarav Sharma" required>
+                </div>
+                <div class="form-group">
+                  <label for="input-contact-phone">Phone Number (E.164 SMS format)</label>
+                  <input type="tel" id="input-contact-phone" placeholder="E.g. +919876543210">
+                </div>
+                <div class="form-group">
+                  <label for="input-contact-email">Email Address</label>
+                  <input type="email" id="input-contact-email" placeholder="E.g. aarav@domain.in">
+                </div>
+                <div class="button-row">
+                  <button id="btn-save-contact" class="btn btn-primary">Save Contact</button>
+                  <button id="btn-cancel-contact" class="btn btn-secondary hidden">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 3. INCIDENT LOGS VIEW -->
+        <section id="view-logs" class="content-view hidden">
+          <div class="view-header">
+            <h2>Incident Logs</h2>
+            <p>Private audit history of safety alerts, coordinates, and conversation contexts.</p>
+          </div>
+
+          <div class="logs-list-wrapper">
+            <div class="logs-table-header">
+              <div class="col-time">Date & Time</div>
+              <div class="col-status">Status</div>
+              <div class="col-details">Alert Metadata Details</div>
+            </div>
+            <div class="logs-table-body" id="incidents-log-body">
+              <div class="text-center text-muted" style="padding: 30px;">No incidents recorded. All clear.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 4. SETTINGS VIEW -->
+        <section id="view-settings" class="content-view hidden">
+          <div class="view-header">
+            <h2>Safety Parameters</h2>
+            <p>Configure personal profiles, deactivation safe-codes, and privacy policies.</p>
+          </div>
+
+          <div class="settings-form-layout">
+            <div class="settings-inputs-pane">
+              
+              <div class="form-group">
+                <label for="input-user-name">User Profile Name</label>
+                <input type="text" id="input-user-name" placeholder="E.g. Priya Singh">
+                <span class="input-info-text">Included in emergency alerts to identify who needs assistance.</span>
+              </div>
+              
+              <div class="form-group">
+                <label for="input-settings-pin">Deactivation PIN (Numeric Safe Code)</label>
+                <input type="password" id="input-settings-pin" maxlength="8" placeholder="E.g. 1234">
+                <span class="input-info-text">Required to clear active emergency screens (4 to 8 digits).</span>
+              </div>
+              
+              <div class="form-group">
+                <label for="input-safe-word">Emergency Safe-Word</label>
+                <input type="text" id="input-safe-word" placeholder="E.g. cancel">
+                <span class="input-info-text">Keyword analyzed locally to automatically resolve listening mode alarms.</span>
+              </div>
+
+              <div class="form-group checkbox-block">
+                <div class="checkbox-align">
+                  <input type="checkbox" id="check-discreet-mode">
+                  <label for="check-discreet-mode">Discreet Alert Routing Mode</label>
+                </div>
+                <span class="input-info-text" style="margin-left: 24px;">When checked, SOS alerts dispatch silently. No fullscreen alarm overrides will display, preventing escalations.</span>
+              </div>
+
+              <button id="btn-save-settings" class="btn btn-primary" style="margin-top: 10px;">Save Configurations</button>
+
+            </div>
+
+            <!-- Privacy Policy card -->
+            <div class="settings-notice-pane">
+              <div class="policy-card">
+                <div class="policy-title">
+                  <svg class="icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                  <h4>Data Isolation & Privacy Notice</h4>
+                </div>
+                <p>GuardianLink operates under strict safety isolation guidelines. GPS coordinate streams, voice monitor transcripts, and trusted contact directories are **only** logged and processed when active safety alarms require dispatch routing. Your information is encrypted and isolated to your secure session profile. It is never sold or used for analytics. <a href="/privacy.html" style="color:var(--accent-color); font-weight:600; text-decoration:underline;">Read the full Privacy Policy here</a>.</p>
+              </div>
+
+              <!-- Safe Zones Geofencing Card -->
+              <div class="form-container-card" style="margin-top:24px;">
+                <h3>Safe Zones Geofencing</h3>
+                <p class="input-info-text" style="margin-bottom:12px;">Define trusted regions (Home, Office, College) with exit alert triggers.</p>
+                
+                <div class="form-group">
+                  <label for="input-zone-name">Safe Zone Name</label>
+                  <input type="text" id="input-zone-name" placeholder="E.g. Home" required>
+                </div>
+                <div class="form-group-row" style="display:flex; gap:8px;">
+                  <div class="form-group" style="flex:1;">
+                    <label for="input-zone-lat">Latitude</label>
+                    <input type="number" step="any" id="input-zone-lat" placeholder="E.g. 12.9716" required>
+                  </div>
+                  <div class="form-group" style="flex:1;">
+                    <label for="input-zone-lng">Longitude</label>
+                    <input type="number" step="any" id="input-zone-lng" placeholder="E.g. 77.5946" required>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="input-zone-radius">Radius (Meters)</label>
+                  <input type="number" id="input-zone-radius" placeholder="E.g. 100" required>
+                </div>
+                
+                <button id="btn-save-zone" class="btn btn-secondary" style="width:100%;">Add Safe Zone</button>
+
+                <div class="safe-zones-list" id="safe-zones-list" style="margin-top:16px; border-top:1px solid var(--border-color); padding-top:12px;">
+                  <!-- Dynamically loaded list of safe zones -->
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ================= ACTIVE SOS TAKEOVER SCREEN (EMERGENCY RED) ================= -->
+  <div id="sos-alert-overlay" class="emergency-overlay-pane hidden">
+    <div class="emergency-alert-box">
+      <div class="emergency-logo">
+        <svg class="icon-danger-triangle" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+      </div>
+      <h2>Emergency SOS Active</h2>
+      <p class="emergency-desc">Your trusted circle has been alerted. Location coordinate streams are actively transmitting.</p>
+
+      <!-- High Priority Government Emergency Helplines (Part B) -->
+      <div class="emergency-status-card government-overlay-helplines" style="border: 2px solid #ffffff; background-color: rgba(255,255,255,0.15); margin-bottom: 20px; text-align: left;">
+        <h4 style="color:#ffffff; font-weight:700; font-size:0.9rem; text-transform:uppercase; margin-bottom:10px; display:flex; align-items:center; gap:6px; border:none; padding:0; background:none;">
+          <svg style="width:16px; height:16px; stroke:#ffffff;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          Official Government Helplines
+        </h4>
+        <div style="display:flex; flex-direction:column; gap:8px;">
+          <a href="tel:112" class="btn" style="background-color:#ffffff; color:#7f1d1d; font-weight:800; font-size:1.05rem; border:none; padding:12px; text-align:center; display:block; border-radius:6px; text-decoration:none; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+            🚨 CALL 112 DIRECTLY
+          </a>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+            <a href="tel:100" class="btn" style="background-color:rgba(255,255,255,0.1); color:#ffffff; font-size:0.8rem; border:1px solid rgba(255,255,255,0.3); padding:8px; text-align:center; display:block; border-radius:6px; text-decoration:none; font-weight:bold;">
+              📞 100 - Police
+            </a>
+            <a href="tel:1091" class="btn" style="background-color:rgba(255,255,255,0.1); color:#ffffff; font-size:0.8rem; border:1px solid rgba(255,255,255,0.3); padding:8px; text-align:center; display:block; border-radius:6px; text-decoration:none; font-weight:bold;">
+              📞 1091 - Women
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div class="emergency-status-card">
+        <h4>Alert Dispatch Channels</h4>
+        <div class="loading-track">
+          <div class="loading-fill" id="dispatch-progress"></div>
+        </div>
+        <p class="dispatch-text-status" id="dispatch-status-text">Dispatching signals...</p>
+      </div>
+
+      <div class="emergency-status-card">
+        <h4>Transmitted GPS Coordinates</h4>
+        <div class="coords-box">
+          <div>Latitude: <strong id="overlay-lat">Searching...</strong></div>
+          <div>Longitude: <strong id="overlay-lng">Searching...</strong></div>
+          <div id="overlay-accuracy-block" style="font-size:0.72rem; color:rgba(255,255,255,0.7); margin-top:4px;">Accuracy: <strong id="overlay-accuracy">Acquiring...</strong></div>
+        </div>
+        <p class="dispatch-text-status">Live coordinates link has been sent to contacts.</p>
+
+        <!-- Manual Entry Fallback inside SOS Overlay -->
+        <div id="manual-coords-section" class="hidden" style="margin-top:12px; border-top:1px solid rgba(255,255,255,0.15); padding-top:12px;">
+          <p style="font-size:0.72rem; color:rgba(255,255,255,0.85); margin-bottom:6px;">GPS permission denied or timeout. Input address or room manually to alert contacts:</p>
+          <div class="input-horizontal-group">
+            <input type="text" id="input-manual-location" placeholder="E.g. Room 402, Academic Block" style="background-color:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.2); color:#ffffff; font-size:0.76rem; height:32px; flex:1;">
+            <button id="btn-submit-manual-location" class="btn" style="height:32px; padding: 0 10px; font-size:0.72rem; background-color:#ffffff; color:#7f1d1d; border:none; font-weight:bold;">Send</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="emergency-resolve-card">
+        <h4>Resolve Incident / Safety Check-in</h4>
+        <p>Input your Deactivation PIN or Safe-word below to confirm your safety.</p>
+        <div class="input-horizontal-group">
+          <input type="password" id="input-resolve-pin" placeholder="PIN or Safe-word" autocomplete="off">
+          <button id="btn-resolve-sos" class="btn btn-resolve-action">Verify Safety</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= SIMULATED PHONE ESCAPE TAKE OVER ================= -->
+  <div id="fake-call-overlay" class="fake-incoming-overlay hidden">
+    <!-- Ringing state -->
+    <div id="call-state-ringing" class="incoming-ring-pane">
+      <div class="incoming-info">
+        <div class="call-avatar-circle">
+          <svg class="icon-avatar" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <h1 id="fake-caller-name">Home</h1>
+        <p class="ringing-subtitle">Ringing...</p>
+      </div>
+
+      <div class="ringing-triggers">
+        <button class="call-action-circle bg-decline" id="btn-decline-call">
+          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L5.09 9.91a16 16 0 0 0 5.59 5.4"></path></svg>
+        </button>
+        <button class="call-action-circle bg-accept" id="btn-accept-call">
+          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 2.11.45z"></path></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Active call state -->
+    <div id="call-state-active" class="incoming-ring-pane hidden">
+      <div class="incoming-info active-info">
+        <h1 id="active-caller-name">Home</h1>
+        <p id="call-duration" class="ringing-timer">00:00</p>
+      </div>
+
+      <div class="phone-keypad-grid">
+        <div class="keypad-btn">
+          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></div>
+          <span>mute</span>
+        </div>
+        <div class="keypad-btn">
+          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg></div>
+          <span>keypad</span>
+        </div>
+        <div class="keypad-btn">
+          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z"></path></svg></div>
+          <span>speaker</span>
+        </div>
+      </div>
+
+      <div class="active-call-hangup">
+        <button class="call-action-circle bg-decline" id="btn-end-call" style="transform: rotate(135deg);">
+          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L5.09 9.91a16 16 0 0 0 5.59 5.4"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= EXPLICIT SAFETY & PRIVACY CONSENT MODAL ================= -->
+  <div id="consent-modal" class="consent-modal hidden">
+    <div class="consent-box" style="max-height: 90vh; overflow-y: auto;">
+      <h3>Safety &amp; Privacy Consent</h3>
+      <p style="font-size:0.8rem; line-height:1.4; color:var(--text-muted); margin-bottom:14px;">GuardianLink requires access to your location and microphone to verify safety states and dispatch alerts to contacts. Read our full <a href="/privacy.html" target="_blank" style="color:var(--accent-color); font-weight:600; text-decoration:underline;">Privacy Policy</a> for safety details.</p>
+      
+      <div class="consent-terms">
+        <div class="term-point" style="font-size:0.78rem; line-height:1.45; margin-bottom:10px;">
+          <strong>GPS Location Trails:</strong> Coordinates are captured and logged *only* when an SOS alert is active or during a commute. Continuous background tracking is disabled.
+        </div>
+        <div class="term-point" style="font-size:0.78rem; line-height:1.45; margin-bottom:10px;">
+          <strong>Voice Distress Listening:</strong> When enabled, speech is analyzed locally. Raw audio is never sent or stored on the server; only transcripts of active alerts are processed.
+        </div>
+        <div class="term-point" style="font-size:0.78rem; line-height:1.45; margin-bottom:10px;">
+          <strong>Data Isolation:</strong> You retain complete control. You can request account deletion, modify trusted contacts, and erase incident logs at any time.
+        </div>
+      </div>
+
+      <div class="checkbox-align" style="margin: 16px 0;">
+        <input type="checkbox" id="check-consent-agree">
+        <label for="check-consent-agree" style="font-size:0.78rem; font-weight:600; line-height:1.4;">I read and consent to voice analysis, location tracking, and the Privacy Policy.</label>
+      </div>
+
+      <div class="button-row">
+        <button id="btn-consent-decline" class="btn btn-secondary">Decline</button>
+        <button id="btn-consent-accept" class="btn btn-primary" disabled>I Understand &amp; Agree</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

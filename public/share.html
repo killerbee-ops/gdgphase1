@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GuardianLink - Live Location Sharing</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    /* Custom modifications for public view */
+    body {
+      overflow-y: auto;
+      background-color: #f8fafc;
+    }
+    .share-container {
+      max-width: 500px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px 16px;
+    }
+    .share-header {
+      background-color: #0f172a;
+      padding: 16px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #ffffff;
+      margin-bottom: 24px;
+    }
+    .share-header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+    .status-alert-box {
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      background-color: #ffffff;
+      margin-bottom: 20px;
+    }
+    .status-alert-box.active-state {
+      border-left: 4px solid #ef4444;
+    }
+    .status-alert-box.ended-state {
+      border-left: 4px solid #10b981;
+    }
+    .map-action-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .btn-map {
+      display: block;
+      width: 100%;
+      background-color: #0f172a;
+      color: #ffffff;
+      text-decoration: none;
+      padding: 12px;
+      border-radius: 6px;
+      font-weight: bold;
+      margin-top: 14px;
+      transition: background-color 0.15s ease;
+    }
+    .btn-map:hover {
+      background-color: #1e293b;
+    }
+    .trail-history-card {
+      background-color: #ffffff;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .trail-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .trail-point {
+      position: relative;
+      padding-left: 20px;
+      border-left: 2px solid var(--border-color);
+      font-size: 0.8rem;
+    }
+    .trail-point:last-child {
+      border-left: none;
+    }
+    .trail-point::before {
+      content: "";
+      position: absolute;
+      left: -5px;
+      top: 4px;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--accent-color);
+    }
+    .trail-point.latest::before {
+      background-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+    }
+    .trail-time {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 0.72rem;
+    }
+    .trail-address {
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+    .trail-coords {
+      font-family: monospace;
+      color: var(--text-light);
+      font-size: 0.7rem;
+    }
+    .refresh-indicator {
+      text-align: center;
+      font-size: 0.7rem;
+      color: var(--text-light);
+      margin-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="share-container">
+    
+    <!-- Branding Header -->
+    <header class="share-header">
+      <svg style="width:24px; height:24px; stroke:#0284c7;" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <h1>GuardianLink Live Track</h1>
+    </header>
+
+    <!-- Main Dynamic Content -->
+    <div id="share-content">
+      <div style="text-align:center; padding: 40px 0; color:var(--text-muted);">
+        Loading emergency session tracking details...
+      </div>
+    </div>
+
+    <!-- Auto refresh text -->
+    <div class="refresh-indicator" id="refresh-indicator" style="display:none;">
+      Auto-refreshing location trail active (every 10s)...
+    </div>
+
+  </div>
+
+  <script>
+    // Extract incident ID from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const incidentId = urlParams.get('id');
+    
+    const contentDiv = document.getElementById('share-content');
+    const refreshText = document.getElementById('refresh-indicator');
+    let intervalId = null;
+
+    if (!incidentId) {
+      contentDiv.innerHTML = `
+        <div class="status-alert-box ended-state">
+          <h3 style="color:#ef4444;">Error</h3>
+          <p>No safety incident ID specified in the sharing link. Access blocked.</p>
+        </div>
+      `;
+    } else {
+      fetchTrackingData();
+      // Start auto-refresh interval
+      intervalId = setInterval(fetchTrackingData, 10000);
+    }
+
+    async function fetchTrackingData() {
+      try {
+        const res = await fetch(`/api/public/share/${incidentId}`);
+        const data = await res.json();
+
+        if (!res.ok || data.error) {
+          contentDiv.innerHTML = `
+            <div class="status-alert-box ended-state">
+              <h3 style="color:var(--text-main); margin-bottom: 6px;">Safety Session Inactive</h3>
+              <p>${data.error || "Failed to retrieve incident logs."}</p>
+            </div>
+          `;
+          refreshText.style.display = 'none';
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
+
+        if (data.active === false) {
+          contentDiv.innerHTML = `
+            <div class="status-alert-box ended-state">
+              <h3 style="color:var(--success-color); margin-bottom: 6px;">Incident Resolved</h3>
+              <p>The user has checked in safely. This emergency tracking link has expired.</p>
+            </div>
+          `;
+          refreshText.style.display = 'none';
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
+
+        refreshText.style.display = 'block';
+        renderTrackingView(data);
+
+      } catch (err) {
+        console.error("Fetch tracking error:", err);
+      }
+    }
+
+    function renderTrackingView(data) {
+      const time = new Date(data.timestamp).toLocaleString();
+      const lat = data.latest.latitude;
+      const lng = data.latest.longitude;
+      const acc = data.latest.accuracy;
+      const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
+      
+      let initialAddress = "No reverse geocode address acquired.";
+      if (data.trail && data.trail.length > 0) {
+        initialAddress = data.trail[data.trail.length - 1].address || "Address lookup in progress...";
+      }
+
+      let trailHtml = '';
+      if (data.trail && data.trail.length > 0) {
+        // Reverse array to show latest trail updates first
+        const sortedTrail = [...data.trail].reverse();
+        sortedTrail.forEach((point, index) => {
+          const ptTime = new Date(point.timestamp).toLocaleTimeString();
+          const isLatest = index === 0;
+          const ptClass = isLatest ? 'trail-point latest' : 'trail-point';
+          
+          trailHtml += `
+            <div class="${ptClass}">
+              <div class="trail-time">${ptTime} ${isLatest ? '(Latest)' : ''}</div>
+              <div class="trail-address">${escapeHTML(point.address || 'GPS Coordinates Lock')}</div>
+              <div class="trail-coords">Lat: ${point.latitude.toFixed(5)}, Lng: ${point.longitude.toFixed(5)} (±${Math.round(point.accuracy)}m)</div>
+            </div>
+          `;
+        });
+      } else {
+        trailHtml = `<div class="text-muted" style="font-size:0.8rem;">No location breadcrumbs recorded yet.</div>`;
+      }
+
+      contentDiv.innerHTML = `
+        <div class="status-alert-box active-state">
+          <h3 style="color:#ef4444; margin-bottom:6px;">⚠️ Emergency Tracker Active</h3>
+          <p><strong>User:</strong> ${escapeHTML(data.user_name)}</p>
+          <p><strong>Alert Started:</strong> ${time}</p>
+          ${data.transcript ? `<p style="margin-top: 10px; font-style:italic; font-size:0.78rem; background-color:#f1f5f9; padding:8px; border-radius:6px;"><strong>Distress Audio Transcript context:</strong> "${escapeHTML(data.transcript)}"</p>` : ''}
+        </div>
+
+        <div class="map-action-card">
+          <h3 style="font-size:0.95rem; font-weight:700; color:var(--primary-brand);">Latest Coordinates Location</h3>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">${escapeHTML(initialAddress)}</p>
+          <p style="font-size:0.7rem; color:var(--text-light); margin-top:2px;">Accuracy confidence: ±${Math.round(acc)} meters</p>
+          <a href="${mapsUrl}" target="_blank" class="btn-map">View on Google Maps</a>
+        </div>
+
+        <div class="trail-history-card">
+          <h3 style="font-size:0.95rem; font-weight:700; color:var(--primary-brand); border-bottom: 1px solid var(--border-color); padding-bottom:8px;">Location Breadcrumb Trail</h3>
+          <div class="trail-timeline">
+            ${trailHtml}
+          </div>
+        </div>
+      `;
+    }
+
+    function escapeHTML(str) {
+      if (!str) return '';
+      return str.replace(/[&<>'"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    }
+  </script>
+</body>
+</html>
