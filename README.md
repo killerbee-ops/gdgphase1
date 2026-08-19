@@ -1,87 +1,66 @@
 # GuardianLink 🛡️
 
-GuardianLink is a discreet, fully functional personal safety and abuse-response web application designed for vulnerable individuals (children, women, elderly, or anyone at risk). It features a disguised frontend interface (looks like a normal utility calculator) that hides a security dashboard containing safety settings, trusted contacts, fake call scheduling, and incident logs.
+**Live Deployed Application**: [https://gdgphase1-git-main-tanishs-projects-29e7549d.vercel.app/](https://gdgphase1-git-main-tanishs-projects-29e7549d.vercel.app/)
 
-## Core Features
-
-- **Disguised Interface**: A fully functioning arithmetic calculator layout.
-- **Hidden Triggers**:
-  - **Secret Code**: Enter `911` (or your custom SOS PIN) and press `=` to trigger a silent alarm.
-  - **Gesture Control**: Triple-tap anywhere on the screen within 1 second.
-  - **Button Hold**: Hold the `=` button for 3 seconds.
-- **Silent Alert Dispatch**: Immediately captures geolocation (with fallback to last-known cached GPS) and sends real alerts containing a Google Maps link to your trusted contacts list via Twilio SMS and SMTP Email.
-- **Discreet Feedback**: In Discreet Mode, triggering the alarm does not show any visual/audio confirmation on-screen, keeping it hidden from nearby abusers.
-- **Fake Call / Exit Excuse**: Schedule simulated incoming phone calls (with realistic phone layouts, timer, and ringtone) to give you a socially acceptable reason to leave a dangerous situation.
-- **Safe-word Check-In**: Cancel false alarms or mark yourself as safe by entering your PIN or safe-word. This updates the database and notifies contacts that you are safe.
-- **Incident Logs**: View a tamper-proof timestamped trail of incidents with map links for evidence.
+GuardianLink is a discreet, production-grade personal safety and abuse-response web platform designed for vulnerable individuals (children, women, the elderly, or anyone at risk). The frontend presents a disguised utilities calculator that hides a secure, Material Design 3 dashboard. In danger, entering your secret PIN unlocks a safety network equipped with AI-powered voice monitoring, commute deviation tracking, and auto-escalation capabilities.
 
 ---
 
-## Tech Stack
+## 🚀 Advanced Production Capabilities
 
-- **Backend**: Node.js + Express
-- **Frontend**: Responsive HTML5, CSS3, ES6 JavaScript (includes a custom Web Audio API synthesizer for the ringtone)
-- **Database**: Supabase (PostgreSQL) with a local JSON DB fallback (`local_db.json`)
-- **Alert Dispatch**: Twilio (SMS) and Nodemailer (SMTP Email) with automatic local logging fallback
+### 1. Material Design 3 Interface
+- Styled with Google's official **Material Design 3 Palette**:
+  - **Google Blue (`#1a73e8`)**: Used for branding highlights, active tab states, and primary actions.
+  - **Google Green (`#34a853`)**: Represents safety verifications and successful system check-ins.
+  - **Google Yellow (`#fbbc04`)**: Identifies moderate-risk warnings on logs.
+  - **Google Red (`#ea4335`)**: Reserved strictly for distress emergencies and high-priority alarms.
+- Loaded **Google Sans** typography globally for a native Google-style visual experience.
+- Uses official **Material Symbols Outlined** (`local_police`, `emergency`, `mic`, `commute`, `shield`, `group`, `history`, `settings`) in place of generic emojis and SVGs.
+- Outlined form inputs, flat cards (`16px` rounding), and pill buttons for tap targets.
 
----
+### 2. Pattern-Aware Voice Distress Analyzer (Phase 2)
+- Maintains a rolling queue of the last 5 speech transcript segments recorded locally via standard browser Web Speech APIs.
+- Submits the rolling queue to generative models (Gemini/OpenAI) to analyze tone, urgency, or repeated calls for assistance.
+- Computes risk states (`none` | `low` | `medium` | `high`) and appends chronological risk reasons directly to the timeline logs.
 
-## Quick Start (Local Mock Mode)
+### 3. Commute/Travel Mode Anomaly Detection (Phase 2)
+- Actively tracks the user's travel location trail and ETA timers.
+- Triggers a check-in overlay if the system detects simulated route deviations or extended stop anomalies.
+- Incorporates a default `ESCALATION_TIMEOUT_SECONDS = 15` countdown timer to safely confirm user well-being.
 
-GuardianLink runs immediately in **Local Mock Mode** out of the box. SMS and Email alerts are logged to the console, and data is stored locally in `local_db.json`.
+### 4. Unresponsive Auto-Escalation Loop (Phase 3)
+- If the user fails to confirm their safety when prompted by a commute check-in, the system automatically upgrades the risk state to `high` and activates the full-screen SOS overlay.
+- A secondary 15-second countdown starts on the active SOS overlay. 
+- Continued unresponsiveness automatically triggers the `/api/sos/escalate` API, upgrading the incident to `escalated` status.
+- Once escalated, the **Official Government Helplines** section pulses in red at the top of the interface for immediate access.
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
-
-2. **Run Tests**:
-   Verify everything is working by running the automated integration tests:
-   ```bash
-   npm test
-   ```
-
-3. **Start the Application**:
-   ```bash
-   npm start
-   ```
-
-4. **Access the Interface**:
-   Open [http://localhost:3000](http://localhost:3000) in your web browser.
-   - Use the calculator normally.
-   - Type **`1234`** and press **`=`** to unlock the settings dashboard.
-   - Try scheduling a fake call, adding trusted contacts, or triggering a test alarm!
+### 5. Dual-Tier Trusted Circle Contacts (Phase 3)
+- **Tier 1 (Primary Circle)**: Alerted immediately via SMS & Email during normal alarms (supports up to 3 contacts).
+- **Tier 2 (Secondary/Wider Circle)**: Notified exclusively during escalated, unresponsive states to expand the safety circle when seconds count (supports up to 2 contacts).
 
 ---
 
-## Production Setup (Real Persistence & Alert Dispatch)
+## 🛠️ Production Architecture & API Setup
 
-To connect the application to real production services, create a `.env` file (copied from `.env.example`) and supply your API credentials.
+To run GuardianLink with real production dispatch and database persistence, supply the following keys in your environment configurations:
 
-### 1. Supabase Persistence Setup
-1. Create a free project on [Supabase](https://supabase.com).
-2. Open the **SQL Editor** in your Supabase dashboard, copy the contents of [`schema.sql`](file:///d:/promptwargdgmmdu/schema.sql), and run it.
-3. Retrieve your **Project URL** and **Service Role Key** (under Settings > API).
-4. Update your `.env` file:
-   ```env
-   SUPABASE_URL=https://your-project-id.supabase.co
-   SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key-here
-   ```
+### 1. Database Persistence (Supabase SQL)
+Initialize the PostgreSQL tables by running the contents of [`schema.sql`](file:///d:/promptwargdgmmdu/schema.sql) in your Supabase SQL editor, then supply:
+```env
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
+```
 
 ### 2. Twilio SMS Integration
-1. Create a free trial account on [Twilio](https://www.twilio.com).
-2. Buy or request a Twilio phone number.
-3. Retrieve your **Account SID**, **Auth Token**, and **From Phone Number**.
-4. Update your `.env` file:
-   ```env
-   TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-   TWILIO_AUTH_TOKEN=your_twilio_auth_token_here
-   TWILIO_FROM_NUMBER=+15551234567
-   ```
-   *Note: In trial mode, Twilio only allows sending SMS to verified recipient phone numbers.*
+Allows dispatching real-time SMS alerts to contacts containing masked GPS coordinates and live share links:
+```env
+TWILIO_ACCOUNT_SID=ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+TWILIO_FROM_NUMBER=+15551234567
+```
 
-### 3. SMTP Email Integration (e.g. Gmail)
-To dispatch real email notifications, configure your SMTP server credentials:
+### 3. SMTP Email Dispatch (e.g. Gmail)
+Sends rich security notifications during distress alerts:
 ```env
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
@@ -90,16 +69,24 @@ SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-gmail-app-password
 SMTP_FROM_EMAIL=your-email@gmail.com
 ```
-*Tip: If using Gmail, you must generate a 16-character **App Password** from your Google account settings.*
+
+### 4. Generative AI Classification
+Supply either key to run the live pattern distress analyzer:
+```env
+GEMINI_API_KEY=your-gemini-api-key
+OPENAI_API_KEY=your-openai-api-key
+```
 
 ---
 
-## File Structure
+## 🧪 Automated Verification Suite
 
-- [`server.js`](file:///d:/promptwargdgmmdu/server.js) - Express backend app, API routing, database wrapper, and notification dispatcher.
-- [`public/index.html`](file:///d:/promptwargdgmmdu/public/index.html) - Unified calculator and dashboard markup.
-- [`public/css/style.css`](file:///d:/promptwargdgmmdu/public/css/style.css) - Responsive calculator keys, slide-out dashboard, and phone layouts.
-- [`public/js/app.js`](file:///d:/promptwargdgmmdu/public/js/app.js) - Client-side state, GPS acquisition, hidden gesture handlers, and Web Audio API ringer.
-- [`scratch/test_api.js`](file:///d:/promptwargdgmmdu/scratch/test_api.js) - Automated system integration tests script.
-- [`schema.sql`](file:///d:/promptwargdgmmdu/schema.sql) - Supabase SQL migration script.
-- [`.env`](file:///d:/promptwargdgmmdu/.env) - Local configurations file.
+GuardianLink comes equipped with a comprehensive integration test suite. Verify routing logic, safe-zones, public sharing, and unresponsive auto-escalation by running:
+
+```bash
+# Install dependencies
+npm install
+
+# Run integration tests
+npm test
+```
