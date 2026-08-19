@@ -584,6 +584,43 @@ async function deleteSafeZone(userId, id) {
   return true;
 }
 
+async function getActiveIncident(userId) {
+  if (useSupabase) {
+    const { data, error } = await supabase
+      .from('incidents')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'active')
+      .order('timestamp', { ascending: false })
+      .limit(1);
+    if (error) throw error;
+    return data && data.length > 0 ? data[0] : null;
+  } else {
+    const db = readLocalDB();
+    return db.incidents.find(i => i.user_id === userId && i.status === 'active') || null;
+  }
+}
+
+async function updateIncidentClassification(incidentId, aiClassification) {
+  if (useSupabase) {
+    const { data, error } = await supabase
+      .from('incidents')
+      .update({ ai_classification: aiClassification })
+      .eq('id', incidentId)
+      .select();
+    if (error) throw error;
+    return data[0];
+  } else {
+    const db = readLocalDB();
+    const incident = db.incidents.find(i => i.id === incidentId);
+    if (incident) {
+      incident.ai_classification = aiClassification;
+      writeLocalDB(db);
+    }
+    return incident;
+  }
+}
+
 module.exports = {
   checkSupabaseConnected,
   getUserByEmail,
@@ -601,5 +638,7 @@ module.exports = {
   getLocationTrail,
   getSafeZones,
   saveSafeZone,
-  deleteSafeZone
+  deleteSafeZone,
+  getActiveIncident,
+  updateIncidentClassification
 };

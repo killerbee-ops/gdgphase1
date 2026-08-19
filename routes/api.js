@@ -4,8 +4,10 @@ const dbService = require('../services/dbService');
 const aiService = require('../services/aiService');
 const alertService = require('../services/alertService');
 const locationService = require('../services/locationService');
+const riskAssessment = require('../services/riskAssessment');
 
 const router = express.Router();
+const activeCommutes = new Map();
 
 // Apply auth protection middleware globally to this router
 router.use(requireAuth);
@@ -152,8 +154,49 @@ router.post('/ai/classify', async (req, res) => {
   const cleanTranscript = sanitizeString(transcript).slice(0, 1000);
 
   try {
-    const classification = await aiService.classifySpeech(cleanTranscript);
-    res.json(classification);
+    // 1. Evaluate safety risk pattern using rolling transcript buffer
+    const evaluation = await riskAssessment.evaluateRiskPattern(req.user.id, cleanTranscript);
+    const { riskLevel, reason, confidence, buffer } = evaluation;
+
+    // 2. Map riskLevel to danger_level for client-side backward compatibility
+    const danger_level = riskLevel === 'none' ? 'low' : riskLevel;
+
+    // 3. Log to active incident history timeline if exists
+    const activeIncident = await dbService.getActiveIncident(req.user.id);
+    if (activeIncident) {
+      let aiClassification = activeIncident.ai_classification;
+      if (typeof aiClassification === 'string') {
+        try { aiClassification = JSON.parse(aiClassification); } catch (e) { aiClassification = null; }
+      }
+      if (!aiClassification || typeof aiClassification !== 'object') {
+        aiClassification = {};
+      }
+      if (!Array.isArray(aiClassification.history)) {
+        aiClassification.history = [];
+      }
+      
+      aiClassification.history.push({
+        timestamp: new Date().toISOString(),
+        riskLevel,
+        reason,
+        confidence
+      });
+
+      aiClassification.riskLevel = riskLevel;
+      aiClassification.reason = reason;
+      aiClassification.confidence = confidence;
+      aiClassification.danger_level = danger_level;
+
+      await dbService.updateIncidentClassification(activeIncident.id, aiClassification);
+    }
+
+    res.json({
+      danger_level,
+      riskLevel,
+      reason,
+      confidence,
+      buffer
+    });
   } catch (err) {
     console.error(`[API AI Classify] User ID: ${req.user.id}. Error:`, err.message);
     res.status(500).json({ error: "Speech classification failed." });
@@ -310,26 +353,48 @@ router.post('/sos/trigger', async (req, res) => {
       }
     }
 
-    // 7. Draft message with AI Service (Gemini/OpenAI or local regex keywords fallback)
-    let alertBody = '';
-    let aiClassification = null;
+    // 7. Determine riskLevel and reason
+    let riskLevel = req.body.riskLevel;
+    let reason = req.body.reason;
 
-    if (cleanTranscript && cleanTranscript.length > 0) {
-      const rawBody = await aiService.generateAIDraft(userName, cleanTranscript, mapsLink);
-      alertBody = `${rawBody}\nTrack live location trail here: ${shareUrl}`;
-      aiClassification = await aiService.classifySpeech(cleanTranscript);
-    } else {
-      const timeStamp = new Date().toLocaleString();
-      alertBody = `EMERGENCY ALERT: ${userName} has triggered a GuardianLink silent alarm. Current location: ${mapsLink}.\nTrack live location trail here: ${shareUrl}\nTimestamp: ${timeStamp}. Please investigate immediately!`;
+    if (!riskLevel) {
+      if (cleanTranscript && cleanTranscript.length > 0) {
+        const evaluation = await riskAssessment.evaluateRiskPattern(req.user.id, cleanTranscript);
+        riskLevel = evaluation.riskLevel;
+        reason = evaluation.reason;
+      } else {
+        riskLevel = 'high';
+        reason = 'Manual user-activated emergency trigger';
+      }
     }
 
-    const emailSubject = `EMERGENCY ALERT: ${userName} needs assistance`;
+    // 8. Dispatch alerts using smart routing rules
+    const routeResult = await riskAssessment.routeAlert(
+      req.user.id,
+      incident.id,
+      riskLevel,
+      reason,
+      mapsLink,
+      shareUrl
+    );
+    const { alertBody, emailSubject, dispatched: dispatchResults } = routeResult;
 
-    // 8. Update incident with final drafted alert body and AI classification
+    // 9. Save final classification history
+    const aiClassification = {
+      riskLevel,
+      reason,
+      confidence: 1.0,
+      history: [{
+        timestamp: new Date().toISOString(),
+        riskLevel,
+        reason,
+        confidence: 1.0
+      }]
+    };
+
     incident.ai_classification = aiClassification;
     incident.ai_drafted_message = alertBody;
-    
-    // InSupabase: update fields. In JSON: resolved inside createIncident object mapping
+
     if (dbService.checkSupabaseConnected()) {
       const { createClient } = require('@supabase/supabase-js');
       const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
@@ -337,15 +402,7 @@ router.post('/sos/trigger', async (req, res) => {
         ai_classification: aiClassification,
         ai_drafted_message: alertBody
       }).eq('id', incident.id);
-    } else {
-      // already mutated by reference
     }
-
-    // 9. Send alerts asynchronously to contacts (with retries and fallback built-in)
-    const dispatchPromises = contacts.map(contact => 
-      alertService.dispatchAlertToContact(contact, alertBody, emailSubject)
-    );
-    const dispatchResults = await Promise.all(dispatchPromises);
 
     const maskedLat = lat !== null ? lat.toFixed(1) + '***' : null;
     const maskedLng = lng !== null ? lng.toFixed(1) + '***' : null;
@@ -384,6 +441,7 @@ router.post('/sos/resolve', async (req, res) => {
     }
 
     const resolvedIncident = await dbService.resolveIncident(req.user.id, incidentId || null, cleanInput);
+    riskAssessment.clearTranscriptBuffer(req.user.id);
     
     // Dispatch safety check-in to contacts
     const userName = settings.user_name || "GuardianLink User";
@@ -409,6 +467,100 @@ router.post('/sos/resolve', async (req, res) => {
     console.error(`[API SOS Resolve] User ID: ${req.user.id}. Error:`, err.message);
     res.status(500).json({ error: "SOS resolution failed: " + err.message });
   }
+});
+
+// Haversine distance calculator
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000; // meters
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+// 1. Start Commute / Trip Mode
+router.post('/commute/start', async (req, res) => {
+  const { destination, expectedRoute, etaMinutes } = req.body;
+
+  if (!destination) {
+    return res.status(400).json({ error: "Destination is required." });
+  }
+
+  activeCommutes.set(req.user.id, {
+    destination: sanitizeString(destination).slice(0, 100),
+    expectedRoute: Array.isArray(expectedRoute) ? expectedRoute : null,
+    etaMinutes: parseInt(etaMinutes) || 15,
+    startTime: Date.now(),
+    lastCoordinates: null
+  });
+
+  console.log(`[Commute Start] User ID: ${req.user.id}. Destination: "${destination}".`);
+  res.json({ success: true, message: "Commute mode active." });
+});
+
+// 2. Commute Location Update & Deviation Check
+router.post('/commute/update', async (req, res) => {
+  const { latitude, longitude, accuracy, simulateDeviation, simulateStop } = req.body;
+  const commute = activeCommutes.get(req.user.id);
+
+  if (!commute) {
+    return res.json({ success: false, error: "No active commute session." });
+  }
+
+  const lat = parseFloat(latitude);
+  const lng = parseFloat(longitude);
+
+  if (isNaN(lat) || isNaN(lng)) {
+    return res.status(400).json({ error: "Invalid coordinates." });
+  }
+
+  commute.lastCoordinates = { lat, lng, timestamp: Date.now() };
+
+  // Check simulations first
+  if (simulateDeviation) {
+    console.warn(`[Route Deviation Simulated] User ID: ${req.user.id}.`);
+    return res.json({ success: true, deviate: true, reason: "Route deviation simulated (User went off expected path)." });
+  }
+
+  if (simulateStop) {
+    console.warn(`[Extended Stop Simulated] User ID: ${req.user.id}.`);
+    return res.json({ success: true, deviate: true, reason: "Extended stop simulated (No movement detected)." });
+  }
+
+  // Real calculations
+  if (commute.expectedRoute && commute.expectedRoute.length > 0) {
+    let minDistance = Infinity;
+    for (const point of commute.expectedRoute) {
+      const dist = getDistance(lat, lng, point.lat, point.lng);
+      if (dist < minDistance) {
+        minDistance = dist;
+      }
+    }
+
+    // Devate if the user is more than 100 meters away from the closest expected path point
+    if (minDistance > 100) {
+      console.warn(`[Route Deviation Detected] User ID: ${req.user.id}. Distance: ${minDistance.toFixed(1)}m.`);
+      return res.json({
+        success: true,
+        deviate: true,
+        reason: `Route deviation detected: user is ${Math.round(minDistance)} meters off-route.`
+      });
+    }
+  }
+
+  res.json({ success: true, deviate: false });
+});
+
+// 3. End Commute / Trip Mode
+router.post('/commute/end', async (req, res) => {
+  if (activeCommutes.has(req.user.id)) {
+    activeCommutes.delete(req.user.id);
+    console.log(`[Commute End] User ID: ${req.user.id}.`);
+  }
+  res.json({ success: true, message: "Commute session ended." });
 });
 
 module.exports = router;

@@ -41,7 +41,12 @@ document.addEventListener('DOMContentLoaded', () => {
     recognition: null,
     recognitionSessionActive: false,
     rollingTranscript: [],
-    voiceConsentGiven: false
+    voiceConsentGiven: false,
+    
+    // Commute/Travel Mode state
+    activeTrip: null,
+    tripCheckIntervalId: null,
+    checkinCountdownId: null
   };
 
   // --- HTML ELEMENTS ---
@@ -127,6 +132,25 @@ document.addEventListener('DOMContentLoaded', () => {
   const elDispatchStatusText = document.getElementById('dispatch-status-text');
   const elInputResolvePin = document.getElementById('input-resolve-pin');
   const btnResolveSos = document.getElementById('btn-resolve-sos');
+
+  // Commute Mode elements
+  const elCommuteCard = document.getElementById('commute-card');
+  const elCommuteSetupSection = document.getElementById('commute-setup-section');
+  const elCommuteActiveSection = document.getElementById('commute-active-section');
+  const elInputCommuteDestination = document.getElementById('input-commute-destination');
+  const elSelectCommuteEta = document.getElementById('select-commute-eta');
+  const elBtnStartCommute = document.getElementById('btn-start-commute');
+  const elBtnEndCommute = document.getElementById('btn-end-commute');
+  const elBtnSimulateDeviation = document.getElementById('btn-simulate-deviation');
+  const elBtnSimulateStop = document.getElementById('btn-simulate-stop');
+  const elLblCommuteDestination = document.getElementById('lbl-commute-destination');
+  const elLblCommuteEta = document.getElementById('lbl-commute-eta');
+  const elCommuteStatusBadge = document.getElementById('commute-status-badge');
+
+  // Checkin Modal elements
+  const elCheckinModal = document.getElementById('checkin-modal');
+  const elLblCheckinCountdown = document.getElementById('lbl-checkin-countdown');
+  const elBtnCheckinSafe = document.getElementById('btn-checkin-safe');
   
   // Fake Call fields
   const fakeCallOverlay = document.getElementById('fake-call-overlay');
@@ -573,14 +597,48 @@ document.addEventListener('DOMContentLoaded', () => {
         transcriptHtml = `<span class="log-transcript-preview">Heard: "${escapeHTML(inc.transcript)}"</span>`;
       }
 
+      let timelineHtml = '';
+      let classification = inc.ai_classification;
+      if (typeof classification === 'string') {
+        try { classification = JSON.parse(classification); } catch (e) { classification = null; }
+      }
+      if (classification && Array.isArray(classification.history) && classification.history.length > 0) {
+        timelineHtml = `
+          <div class="risk-timeline-box" style="margin-top:10px; padding:10px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; width: 100%;">
+            <div style="font-size:0.75rem; font-weight:bold; color:var(--text-muted); margin-bottom:6px; text-align: left;">Risk Level Timeline:</div>
+            <div class="timeline-steps" style="display:flex; flex-direction:column; gap:6px; border-left:2px solid var(--border-color); padding-left:10px; margin-left:4px;">
+        `;
+        classification.history.forEach(step => {
+          const stepTime = new Date(step.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+          const stepRisk = (step.riskLevel || 'none').toUpperCase();
+          let badgeColor = '#64748b';
+          if (step.riskLevel === 'low') badgeColor = '#3b82f6';
+          if (step.riskLevel === 'medium') badgeColor = '#f59e0b';
+          if (step.riskLevel === 'high') badgeColor = '#ef4444';
+          
+          timelineHtml += `
+            <div class="timeline-step" style="font-size:0.72rem; line-height:1.3; text-align: left;">
+              <span style="color:${badgeColor}; font-weight:bold;">● [${stepRisk}]</span> 
+              <span style="color:var(--text-muted); font-size:0.68rem;">(${stepTime})</span>: 
+              <span style="color:var(--text-main); font-style:italic;">${escapeHTML(step.reason || '')}</span>
+            </div>
+          `;
+        });
+        timelineHtml += `
+            </div>
+          </div>
+        `;
+      }
+
       rowItem.innerHTML = `
         <div class="col-time">${date}</div>
         <div>
           <span class="col-status-badge ${statusClass}">${statusLabel}</span>
         </div>
-        <div class="col-details-text">
+        <div class="col-details-text" style="display: flex; flex-direction: column; align-items: flex-start;">
           Location: ${locHtml}
           ${transcriptHtml}
+          ${timelineHtml}
           ${resolveBtnHtml}
         </div>
       `;
@@ -1095,8 +1153,6 @@ document.addEventListener('DOMContentLoaded', () => {
     };
   }
 
-  // --- DASHBOARD ROUTINE WIRE UPS ---
-
   function setupDashboardEvents() {
     btnSaveSettings.onclick = saveSettingsToServer;
     btnSaveContact.onclick = saveContactToServer;
@@ -1116,6 +1172,8 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleVoicePanel(active);
       }
     };
+
+    setupCommuteEvents();
   }
 
   // --- EXPLICIT MICROPHONE CONSENT MODAL ---
@@ -1491,5 +1549,224 @@ document.addEventListener('DOMContentLoaded', () => {
         '"': '&quot;'
       }[tag] || tag)
     );
+  }
+
+  // --- COMMUTE / TRAVEL MODE ENGINE ---
+
+  function setupCommuteEvents() {
+    if (!elBtnStartCommute) return;
+
+    elBtnStartCommute.onclick = startCommute;
+    elBtnEndCommute.onclick = () => endCommute();
+    elBtnSimulateDeviation.onclick = () => updateCommuteLocation({ simulateDeviation: true });
+    elBtnSimulateStop.onclick = () => updateCommuteLocation({ simulateStop: true });
+    elBtnCheckinSafe.onclick = handleCheckinResponseSafe;
+  }
+
+  async function startCommute() {
+    if (appState.contacts.length === 0) {
+      showToast("Cannot start commute. Trusted Circle list is empty.", "error");
+      return;
+    }
+
+    if (localStorage.getItem('guardianlink_privacy_consent') !== 'true') {
+      showConsentModal(() => { startCommute(); });
+      return;
+    }
+
+    const destination = elInputCommuteDestination.value.trim();
+    if (!destination) {
+      showToast("Please enter a destination address.", "error");
+      return;
+    }
+
+    const etaVal = parseInt(elSelectCommuteEta.value) || 15;
+    elBtnStartCommute.disabled = true;
+    elBtnStartCommute.textContent = "Initiating trip...";
+
+    try {
+      const res = await fetch('/api/commute/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ destination, etaMinutes: etaVal })
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        appState.activeTrip = {
+          destination,
+          etaSeconds: etaVal * 60,
+          startTime: Date.now()
+        };
+
+        elLblCommuteDestination.textContent = destination;
+        elLblCommuteEta.textContent = formatRemainingTime(appState.activeTrip.etaSeconds);
+        
+        elCommuteSetupSection.classList.add('hidden');
+        elCommuteActiveSection.classList.remove('hidden');
+        elCommuteStatusBadge.classList.remove('hidden');
+        
+        showToast("Commute safety monitoring activated.", "success");
+        
+        if (appState.tripCheckIntervalId) clearInterval(appState.tripCheckIntervalId);
+        appState.tripCheckIntervalId = setInterval(checkCommuteTick, 1000);
+      } else {
+        showToast(data.error || "Failed to start commute monitoring.", "error");
+      }
+    } catch (err) {
+      console.error("Commute start failed:", err);
+      showToast("Server connection error.", "error");
+    } finally {
+      elBtnStartCommute.disabled = false;
+      elBtnStartCommute.textContent = "Start Commute Monitoring";
+    }
+  }
+
+  function checkCommuteTick() {
+    if (!appState.activeTrip) {
+      clearInterval(appState.tripCheckIntervalId);
+      return;
+    }
+
+    appState.activeTrip.etaSeconds--;
+    elLblCommuteEta.textContent = formatRemainingTime(appState.activeTrip.etaSeconds);
+
+    if (appState.activeTrip.etaSeconds <= 0) {
+      clearInterval(appState.tripCheckIntervalId);
+      autoEscalateCommuteAlert("Commute duration ETA timeout reached without safe check-in.");
+      return;
+    }
+
+    if (appState.activeTrip.etaSeconds % 10 === 0) {
+      updateCommuteLocation();
+    }
+  }
+
+  async function updateCommuteLocation(params = {}) {
+    if (!appState.activeTrip) return;
+
+    const geoOptions = { enableHighAccuracy: true, timeout: 5000 };
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        await postCommuteUpdate(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, params);
+      },
+      async (err) => {
+        await postCommuteUpdate(28.614, 77.2091, 10, params);
+      },
+      geoOptions
+    );
+  }
+
+  async function postCommuteUpdate(latitude, longitude, accuracy, params) {
+    try {
+      const res = await fetch('/api/commute/update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ latitude, longitude, accuracy, ...params })
+      });
+      const data = await res.json();
+      
+      if (data.success && data.deviate) {
+        triggerCheckinPrompt(data.reason);
+      }
+    } catch (err) {
+      console.warn("Location update failed:", err);
+    }
+  }
+
+  function triggerCheckinPrompt(reason) {
+    elCheckinModal.classList.remove('hidden');
+    let countdown = 15;
+    elLblCheckinCountdown.textContent = countdown;
+
+    if (appState.checkinCountdownId) clearInterval(appState.checkinCountdownId);
+    appState.checkinCountdownId = setInterval(() => {
+      countdown--;
+      elLblCheckinCountdown.textContent = countdown;
+      if (countdown <= 0) {
+        clearInterval(appState.checkinCountdownId);
+        elCheckinModal.classList.add('hidden');
+        autoEscalateCommuteAlert(reason);
+      }
+    }, 1000);
+  }
+
+  function handleCheckinResponseSafe() {
+    elCheckinModal.classList.add('hidden');
+    if (appState.checkinCountdownId) clearInterval(appState.checkinCountdownId);
+    
+    if (appState.activeTrip) {
+      appState.activeTrip.etaSeconds += 300; // Give 5 extra minutes padding for safety confirmation
+      elLblCommuteEta.textContent = formatRemainingTime(appState.activeTrip.etaSeconds);
+    }
+    showToast("Safety check-in acknowledged. Commute monitoring resumed.", "success");
+  }
+
+  async function autoEscalateCommuteAlert(reason) {
+    showToast("Safety timeout! Auto-escalating distress dispatch...", "error");
+    
+    const geoOptions = { enableHighAccuracy: true, timeout: 5000 };
+
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        await triggerSOSWithCommuteData(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy, reason);
+      },
+      async (err) => {
+        await triggerSOSWithCommuteData(28.614, 77.2091, 10, reason);
+      },
+      geoOptions
+    );
+  }
+
+  async function triggerSOSWithCommuteData(lat, lng, acc, reason) {
+    try {
+      const res = await fetch('/api/sos/trigger', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lng,
+          accuracy: acc,
+          riskLevel: 'medium',
+          reason: `Auto-escalation: Route Deviation check-in timeout. ${reason}`
+        })
+      });
+      
+      if (res.ok) {
+        showToast("Alert dispatched successfully.", "success");
+        await endCommute(true);
+        loadIncidents();
+      }
+    } catch (err) {
+      console.error("SOS Trigger from Commute failed:", err);
+    }
+  }
+
+  async function endCommute(silent = false) {
+    if (appState.tripCheckIntervalId) clearInterval(appState.tripCheckIntervalId);
+    if (appState.checkinCountdownId) clearInterval(appState.checkinCountdownId);
+    appState.activeTrip = null;
+
+    elCommuteSetupSection.classList.remove('hidden');
+    elCommuteActiveSection.classList.add('hidden');
+    elCommuteStatusBadge.classList.add('hidden');
+    elInputCommuteDestination.value = '';
+
+    try {
+      await fetch('/api/commute/end', { method: 'POST' });
+      if (!silent) {
+        showToast("Commute safety monitoring deactivated.", "info");
+      }
+    } catch (err) {
+      console.warn("Failed to notify server of commute ending:", err);
+    }
+  }
+
+  function formatRemainingTime(seconds) {
+    if (seconds <= 0) return "0:00";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   }
 });

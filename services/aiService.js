@@ -186,8 +186,87 @@ function checkAIEnabled() {
   return !!(geminiApiKey || openaiApiKey);
 }
 
+function mockEvaluatePattern(buffer) {
+  const combinedText = buffer.join(' ').toLowerCase();
+  const highKeywords = ['help', 'stop', 'let go', 'don\'t touch', 'police', 'kill', 'run', 'fire', 'emergency', 'get away'];
+  const medKeywords = ['suspicious', 'scared', 'follow', 'creepy', 'weird', 'who is', 'don\'t like'];
+  
+  const foundHigh = highKeywords.filter(k => combinedText.includes(k));
+  const foundMed = medKeywords.filter(k => combinedText.includes(k));
+
+  let riskLevel = 'none';
+  let reason = 'Analysis shows standard background conversation patterns.';
+  let confidence = 0.90;
+
+  if (foundHigh.length >= 2) {
+    riskLevel = 'high';
+    reason = `Repeated high-danger keywords detected: [${foundHigh.join(', ')}].`;
+    confidence = 0.95;
+  } else if (foundHigh.length === 1) {
+    riskLevel = 'medium';
+    reason = `Isolated high-danger keyword detected: [${foundHigh[0]}].`;
+    confidence = 0.85;
+  } else if (foundMed.length >= 2) {
+    riskLevel = 'medium';
+    reason = `Escalating concern: multiple suspicious markers found.`;
+    confidence = 0.80;
+  } else if (foundMed.length === 1) {
+    riskLevel = 'low';
+    reason = `Minor concern keyword detected: [${foundMed[0]}].`;
+    confidence = 0.85;
+  }
+
+  return { riskLevel, reason, confidence };
+}
+
+async function evaluatePatternDistress(buffer) {
+  if (!buffer || buffer.length === 0) {
+    return { riskLevel: 'none', reason: 'Empty transcript buffer.', confidence: 1.0 };
+  }
+
+  const hasKeys = !!(geminiApiKey || openaiApiKey);
+  if (!hasKeys) {
+    return { ...mockEvaluatePattern(buffer), mock: true };
+  }
+
+  try {
+    const formattedBuffer = buffer.map((text, idx) => `[Segment ${idx + 1}]: "${text}"`).join('\n');
+    const prompt = `You are an AI distress detection system for a personal safety app. Analyze the following rolling buffer of transcribed audio segments recorded from a user's device and classify the safety pattern.
+Transcripts Timeline (from oldest to newest):
+${formattedBuffer}
+
+Evaluate the escalation pattern across segments. Look for:
+- Escalating tone, panic, or urgency across segments.
+- Repeated calls for assistance or distress.
+- Direct safewords or cancellations.
+- Sudden silence or interruption after a tense situation.
+
+You must classify the overall risk level as one of:
+- "high": Immediate danger, SOS required.
+- "medium": Suspicious, vulnerable, or escalating tension.
+- "low": Minor concern or mild tension.
+- "none": Normal conversation or check-in.
+
+Response must be a valid JSON object matching this schema:
+{
+  "riskLevel": "high" | "medium" | "low" | "none",
+  "reason": "brief explanation of the pattern detected",
+  "confidence": 0.0 to 1.0
+}
+Do not include any markdown formatting, output ONLY raw JSON.`;
+
+    const rawJson = await queryLLM(prompt, true);
+    const result = JSON.parse(rawJson);
+    return { ...result, mock: false };
+  } catch (err) {
+    console.error("[AI Service] Live LLM pattern evaluation failed, falling back to local mock:", err.message);
+    return { ...mockEvaluatePattern(buffer), mock: true, error: err.message };
+  }
+}
+
 module.exports = {
   classifySpeech,
   generateAIDraft,
-  checkAIEnabled
+  checkAIEnabled,
+  evaluatePatternDistress
 };
