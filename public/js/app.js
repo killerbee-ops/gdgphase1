@@ -66,8 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Status Indicator elements
   const elStatusSupabase = document.getElementById('status-supabase');
+  const elDotSupabase = document.getElementById('dot-supabase');
   const elStatusSms = document.getElementById('status-sms');
+  const elDotSms = document.getElementById('dot-sms');
   const elStatusEmail = document.getElementById('status-email');
+  const elDotEmail = document.getElementById('dot-email');
   
   // State Card elements
   const elStateIndicatorDot = document.getElementById('state-indicator-dot');
@@ -387,14 +390,44 @@ document.addEventListener('DOMContentLoaded', () => {
     try {
       const res = await fetch('/api/config-status');
       const data = await res.json();
-      elStatusSupabase.textContent = data.supabase ? 'Connected' : 'Local DB';
-      elStatusSupabase.style.color = data.supabase ? '#10b981' : '#f59e0b';
-      elStatusSms.textContent = data.twilio ? 'Active' : 'Mock';
-      elStatusSms.style.color = data.twilio ? '#10b981' : '#f59e0b';
-      elStatusEmail.textContent = data.smtp ? 'Active' : 'Mock';
-      elStatusEmail.style.color = data.smtp ? '#10b981' : '#f59e0b';
+      
+      // DB
+      if (data.supabase) {
+        elStatusSupabase.textContent = 'Connected';
+        elDotSupabase.style.backgroundColor = 'var(--success-color)';
+      } else {
+        elStatusSupabase.textContent = 'Local DB';
+        elDotSupabase.style.backgroundColor = 'var(--warning-color)';
+      }
+      elStatusSupabase.style.color = 'var(--text-muted)';
+
+      // SMS
+      if (data.twilio) {
+        elStatusSms.textContent = 'Connected';
+        elDotSms.style.backgroundColor = 'var(--success-color)';
+      } else {
+        elStatusSms.textContent = 'Mock';
+        elDotSms.style.backgroundColor = 'var(--warning-color)';
+      }
+      elStatusSms.style.color = 'var(--text-muted)';
+
+      // Email
+      if (data.smtp) {
+        elStatusEmail.textContent = 'Connected';
+        elDotEmail.style.backgroundColor = 'var(--success-color)';
+      } else {
+        elStatusEmail.textContent = 'Mock';
+        elDotEmail.style.backgroundColor = 'var(--warning-color)';
+      }
+      elStatusEmail.style.color = 'var(--text-muted)';
     } catch (err) {
       console.warn("Config status check failed:", err);
+      elStatusSupabase.textContent = 'Unavailable';
+      elDotSupabase.style.backgroundColor = '#80868b';
+      elStatusSms.textContent = 'Unavailable';
+      elDotSms.style.backgroundColor = '#80868b';
+      elStatusEmail.textContent = 'Unavailable';
+      elDotEmail.style.backgroundColor = '#80868b';
     }
   }
 

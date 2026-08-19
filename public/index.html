@@ -139,18 +139,19 @@
         </div>
         <div class="system-status-indicators">
           <div class="status-indicator">
+            <span class="status-dot" id="dot-supabase" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background-color: var(--text-light);"></span>
             <span class="status-dot-label">DB Status:</span>
             <span class="status-value-text" id="status-supabase">Checking...</span>
           </div>
           <div class="status-indicator">
+            <span class="status-dot" id="dot-sms" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background-color: var(--text-light);"></span>
             <span class="status-dot-label">SMS Link:</span>
             <span class="status-value-text" id="status-sms">Checking...</span>
           </div>
-          <div class="system-status-indicators" style="margin: 0; padding: 0; border: none; background: transparent; display: flex; gap: 16px;">
-            <div class="status-indicator">
-              <span class="status-dot-label">Email Node:</span>
-              <span class="status-value-text" id="status-email">Checking...</span>
-            </div>
+          <div class="status-indicator">
+            <span class="status-dot" id="dot-email" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block; background-color: var(--text-light);"></span>
+            <span class="status-dot-label">Email Node:</span>
+            <span class="status-value-text" id="status-email">Checking...</span>
           </div>
         </div>
       </header>
@@ -500,9 +501,7 @@
   <!-- ================= ACTIVE SOS TAKEOVER SCREEN (EMERGENCY RED) ================= -->
   <div id="sos-alert-overlay" class="emergency-overlay-pane hidden">
     <div class="emergency-alert-box">
-      <div class="emergency-logo">
-        <svg class="icon-danger-triangle" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-      </div>
+        <span class="material-symbols-outlined" style="font-size: 48px; color: #ffffff; animation: alertPulse 1.5s infinite; vertical-align: middle;">warning</span>
       <h2>Emergency SOS Active</h2>
       <p class="emergency-desc">Your trusted circle has been alerted. Location coordinate streams are actively transmitting.</p>
 
@@ -581,8 +580,8 @@
     <!-- Ringing state -->
     <div id="call-state-ringing" class="incoming-ring-pane">
       <div class="incoming-info">
-        <div class="call-avatar-circle">
-          <svg class="icon-avatar" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        <div class="call-avatar-circle" style="display: flex; align-items: center; justify-content: center;">
+          <span class="material-symbols-outlined" style="font-size: 48px; color: var(--text-light);">person</span>
         </div>
         <h1 id="fake-caller-name">Home</h1>
         <p class="ringing-subtitle">Ringing...</p>
@@ -590,10 +589,10 @@
 
       <div class="ringing-triggers">
         <button class="call-action-circle bg-decline" id="btn-decline-call">
-          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L5.09 9.91a16 16 0 0 0 5.59 5.4"></path></svg>
+          <span class="material-symbols-outlined" style="font-size: 28px; color: #ffffff;">call_end</span>
         </button>
         <button class="call-action-circle bg-accept" id="btn-accept-call">
-          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 2.11.45z"></path></svg>
+          <span class="material-symbols-outlined" style="font-size: 28px; color: #ffffff;">call</span>
         </button>
       </div>
     </div>
@@ -607,22 +606,22 @@
 
       <div class="phone-keypad-grid">
         <div class="keypad-btn">
-          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path></svg></div>
+          <div class="circle-btn"><span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-light);">mic_off</span></div>
           <span>mute</span>
         </div>
         <div class="keypad-btn">
-          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="9" y1="3" x2="9" y2="21"></line><line x1="15" y1="3" x2="15" y2="21"></line></svg></div>
+          <div class="circle-btn"><span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-light);">apps</span></div>
           <span>keypad</span>
         </div>
         <div class="keypad-btn">
-          <div class="circle-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 18.5a6.5 6.5 0 1 0 0-13 6.5 6.5 0 0 0 0 13z"></path></svg></div>
+          <div class="circle-btn"><span class="material-symbols-outlined" style="font-size: 20px; color: var(--text-light);">volume_up</span></div>
           <span>speaker</span>
         </div>
       </div>
 
       <div class="active-call-hangup">
-        <button class="call-action-circle bg-decline" id="btn-end-call" style="transform: rotate(135deg);">
-          <svg class="icon-call" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L5.09 9.91a16 16 0 0 0 5.59 5.4"></path></svg>
+        <button class="call-action-circle bg-decline" id="btn-end-call">
+          <span class="material-symbols-outlined" style="font-size: 28px; color: #ffffff;">call_end</span>
         </button>
       </div>
     </div>
@@ -632,12 +631,12 @@
   <div id="checkin-modal" class="consent-modal hidden" style="z-index: 10002;">
     <div class="consent-box" style="max-width:400px; text-align:center;">
       <h3 style="color:var(--danger-color); margin-bottom:12px; display:flex; align-items:center; justify-content:center; gap:8px;">
-        <svg class="icon" style="stroke:var(--danger-color);" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <span class="material-symbols-outlined" style="color:var(--danger-color); font-size:24px;">warning</span>
         Commute Safety Check
       </h3>
       <p style="font-size:0.84rem; line-height:1.5; margin-bottom:18px; color:var(--text-main);">Everything okay? We noticed you've gone off your expected path or stopped moving unexpectedly.</p>
       <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:18px;">Auto-escalating emergency alerts to contacts in <strong id="lbl-checkin-countdown">15</strong> seconds...</div>
-      <button id="btn-checkin-safe" class="btn btn-primary" style="width:100%; height:44px; font-weight:bold; background-color:#10b981; border-color:#10b981; color: #ffffff;">Yes, I Am Safe</button>
+      <button id="btn-checkin-safe" class="btn btn-primary" style="width:100%; height:40px; font-weight:bold; background-color:var(--success-color); border-color:var(--success-color); color: #ffffff;">Yes, I Am Safe</button>
     </div>
   </div>
 
