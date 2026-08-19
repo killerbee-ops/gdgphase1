@@ -42,7 +42,7 @@ async function evaluateRiskPattern(userId, newSegment) {
 /**
  * Routes alerts based on computed risk level
  */
-async function routeAlert(userId, incidentId, riskLevel, reason, mapsLink, shareUrl) {
+async function routeAlert(userId, incidentId, riskLevel, reason, mapsLink, shareUrl, isEscalated = false, durationUnresponsiveMinutes = null) {
   const contacts = await dbService.getContacts(userId);
   const settings = await dbService.getSettings(userId);
   const userName = settings.user_name || "GuardianLink User";
@@ -52,22 +52,36 @@ async function routeAlert(userId, incidentId, riskLevel, reason, mapsLink, share
   let emailSubject = "";
   let dispatched = [];
 
-  if (riskLevel === 'high') {
+  const primaryContacts = contacts.filter(c => (c.tier || 1) === 1);
+  const secondaryContacts = contacts.filter(c => c.tier === 2);
+
+  if (isEscalated) {
+    const minStr = durationUnresponsiveMinutes ? `${durationUnresponsiveMinutes} minutes` : 'an extended period';
+    emailSubject = `EMERGENCY UNRESPONSIVE ALERT: ${userName} is unresponsive`;
+    alertBody = `EMERGENCY UNRESPONSIVE ALERT: ${userName} has been unresponsive for ${minStr}. Last known location: ${mapsLink}.\nTrack live location trail here: ${shareUrl}\nTimestamp: ${timeStamp}. Immediate investigation is required!`;
+
+    // Notify ALL primary contacts AND secondary contacts via both channels
+    const allContactsToNotify = [...primaryContacts, ...secondaryContacts];
+    if (allContactsToNotify.length > 0) {
+      const promises = allContactsToNotify.map(c => alertService.dispatchAlertToContact(c, alertBody, emailSubject));
+      dispatched = await Promise.all(promises);
+    }
+  } else if (riskLevel === 'high') {
     emailSubject = `EMERGENCY ALERT: ${userName} needs immediate assistance`;
     alertBody = `EMERGENCY ALERT: ${userName} has triggered a GuardianLink alarm. Potential high-risk distress detected. Reason: ${reason}. Location: ${mapsLink}.\nTrack live location trail here: ${shareUrl}\nTimestamp: ${timeStamp}. Please investigate immediately!`;
 
-    if (contacts.length > 0) {
-      // Notify all contacts via both channels
-      const promises = contacts.map(c => alertService.dispatchAlertToContact(c, alertBody, emailSubject));
+    if (primaryContacts.length > 0) {
+      // Notify all primary contacts via both channels
+      const promises = primaryContacts.map(c => alertService.dispatchAlertToContact(c, alertBody, emailSubject));
       dispatched = await Promise.all(promises);
     }
   } else if (riskLevel === 'medium') {
     emailSubject = `[Precautionary Check] GuardianLink Alert for ${userName}`;
     alertBody = `[Precautionary Check] GuardianLink detected potential medium-risk distress for ${userName}. Reason: ${reason}. Location: ${mapsLink}.\nTrack live location trail here: ${shareUrl}\nTimestamp: ${timeStamp}.`;
 
-    if (contacts.length > 0) {
+    if (primaryContacts.length > 0) {
       // Notify ONLY primary contact via SMS only (or email if phone is not set)
-      const primaryContact = contacts[0];
+      const primaryContact = primaryContacts[0];
       const smsResult = await alertService.dispatchAlertToContact(
         { ...primaryContact, email: null }, // Nullify email to route only via SMS
         alertBody,

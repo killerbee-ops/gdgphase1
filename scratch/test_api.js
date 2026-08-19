@@ -220,6 +220,49 @@ async function runTests() {
       passed = false;
     }
 
+    // --- TEST 8: AUTO-ESCALATION STATE ---
+    console.log("\nTest 8: POST /api/sos/escalate (Auto-escalation check)");
+    
+    // Add a secondary contact (tier = 2)
+    const secondaryContact = {
+      name: "Sanjay Sharma",
+      phone: "+919876543222",
+      email: "sanjay@domain.in",
+      tier: 2
+    };
+    await request('POST', '/api/contacts', secondaryContact, cookieA);
+
+    // Trigger a new SOS
+    const triggerResEscalate = await request('POST', '/api/sos/trigger', {
+      latitude: 28.614,
+      longitude: 77.2091,
+      accuracy: 10,
+      riskLevel: 'high',
+      reason: 'Commute deviation check-in timeout'
+    }, cookieA);
+    const newIncidentIdEscalate = triggerResEscalate.body.incidentId;
+
+    // Call escalate
+    const escalateRes = await request('POST', '/api/sos/escalate', {
+      incidentId: newIncidentIdEscalate,
+      durationUnresponsiveMinutes: 1
+    }, cookieA);
+
+    console.log(`Status: ${escalateRes.status}`);
+    console.log(`Escalation message: ${escalateRes.body.message}`);
+    console.log(`Risk Level: ${escalateRes.body.ai_classification?.riskLevel}`);
+
+    if (escalateRes.status === 200 && escalateRes.body.ai_classification?.riskLevel === 'escalated') {
+      console.log("✅ Incident auto-escalation tiering verified successfully.");
+    } else {
+      console.log("❌ Incident auto-escalation check failed.");
+      passed = false;
+    }
+
+    // Resolve the new incident
+    console.log("\nResolving new User A incident...");
+    await request('POST', '/api/sos/resolve', { pinOrSafeWord: "1234", incidentId: newIncidentIdEscalate }, cookieA);
+
   } catch (err) {
     console.error("Test execution run failure:", err);
     passed = false;

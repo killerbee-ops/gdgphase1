@@ -10,6 +10,8 @@ if ('serviceWorker' in navigator) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  const ESCALATION_TIMEOUT_SECONDS = 15; // Configurable escalation window for live demo
+
   // --- STATE ---
   let appState = {
     user: null,
@@ -46,7 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Commute/Travel Mode state
     activeTrip: null,
     tripCheckIntervalId: null,
-    checkinCountdownId: null
+    checkinCountdownId: null,
+
+    // Auto-Escalation state
+    sosEscalationTimerId: null,
+    sosEscalationCountdown: 15
   };
 
   // --- HTML ELEMENTS ---
@@ -151,6 +157,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const elCheckinModal = document.getElementById('checkin-modal');
   const elLblCheckinCountdown = document.getElementById('lbl-checkin-countdown');
   const elBtnCheckinSafe = document.getElementById('btn-checkin-safe');
+
+  // SOS Active Overlay Escalation elements
+  const elSosEscalationCard = document.getElementById('sos-escalation-card');
+  const elSosEscalationStatus = document.getElementById('sos-escalation-status');
+  const elSosEscalationTimerArea = document.getElementById('sos-escalation-timer-area');
+  const elLblSosEscalationCountdown = document.getElementById('lbl-sos-escalation-countdown');
+  const elSosGovernmentCard = document.getElementById('sos-government-card');
   
   // Fake Call fields
   const fakeCallOverlay = document.getElementById('fake-call-overlay');
@@ -470,9 +483,63 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  async function saveContactToServer() {
+    const nameVal = elInputContactName.value.trim();
+    const phoneVal = elInputContactPhone.value.trim();
+    const emailVal = elInputContactEmail.value.trim();
+    const tierVal = document.getElementById('select-contact-tier').value;
+    const idVal = elInputContactId.value;
+
+    if (!nameVal) {
+      showToast("Name is required.", "error");
+      return;
+    }
+
+    if (!phoneVal && !emailVal) {
+      showToast("Provide at least a phone number or email address.", "error");
+      return;
+    }
+
+    btnSaveContact.disabled = true;
+    btnSaveContact.textContent = "Saving...";
+
+    const payload = {
+      id: idVal || undefined,
+      name: nameVal,
+      phone: phoneVal || null,
+      email: emailVal || null,
+      tier: parseInt(tierVal)
+    };
+
+    try {
+      const res = await fetch('/api/contacts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        showToast(idVal ? "Contact updated." : "Contact added.", "success");
+        resetContactForm();
+        loadContacts();
+      } else {
+        showToast(data.error || "Failed to save contact.", "error");
+      }
+    } catch (err) {
+      showToast("Server connection error.", "error");
+    } finally {
+      btnSaveContact.disabled = false;
+      btnSaveContact.textContent = "Save Contact";
+    }
+  }
+
   function renderContactsList() {
     elContactsList.innerHTML = '';
-    elContactsCount.textContent = `${appState.contacts.length} / 3`;
+    
+    const prims = appState.contacts.filter(c => (c.tier || 1) === 1).length;
+    const secs = appState.contacts.filter(c => c.tier === 2).length;
+    elContactsCount.textContent = `P: ${prims}/3 | S: ${secs}/2`;
 
     if (appState.contacts.length === 0) {
       elContactsList.appendChild(elContactsEmptyState);
@@ -485,9 +552,10 @@ document.addEventListener('DOMContentLoaded', () => {
     appState.contacts.forEach(contact => {
       const item = document.createElement('div');
       item.className = 'contact-card';
+      const tierBadge = `<span style="font-size:0.68rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; background-color: ${contact.tier === 2 ? '#fef3c7' : '#dbeafe'}; color: ${contact.tier === 2 ? '#b45309' : '#1e40af'}; margin-left: 8px;">${contact.tier === 2 ? 'Secondary' : 'Primary'}</span>`;
       item.innerHTML = `
         <div class="contact-meta">
-          <h4>${escapeHTML(contact.name)}</h4>
+          <h4 style="display: flex; align-items: center;">${escapeHTML(contact.name)} ${tierBadge}</h4>
           <p>${escapeHTML(contact.phone || 'No SMS')} | ${escapeHTML(contact.email || 'No Email')}</p>
         </div>
         <div class="contact-actions">
@@ -512,6 +580,8 @@ document.addEventListener('DOMContentLoaded', () => {
           elInputContactName.value = contact.name;
           elInputContactPhone.value = contact.phone || '';
           elInputContactEmail.value = contact.email || '';
+          const elSelectContactTier = document.getElementById('select-contact-tier');
+          if (elSelectContactTier) elSelectContactTier.value = contact.tier || 1;
           btnCancelContact.classList.remove('hidden');
           document.getElementById('contact-form-title').textContent = 'Edit Trusted Contact';
           elContactForm.scrollIntoView({ behavior: 'smooth' });
@@ -933,6 +1003,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!isDiscreet) {
       sosAlertOverlay.classList.remove('hidden');
       elInputResolvePin.focus();
+
+      const activeIncident = appState.incidents.find(i => i.status === 'active');
+      let isEscalated = false;
+      if (activeIncident && activeIncident.ai_classification) {
+        let classification = activeIncident.ai_classification;
+        if (typeof classification === 'string') {
+          try { classification = JSON.parse(classification); } catch (e) { classification = null; }
+        }
+        if (classification && (classification.riskLevel === 'escalated' || (classification.history && classification.history.some(h => h.riskLevel === 'escalated')))) {
+          isEscalated = true;
+        }
+      }
+
+      if (isEscalated) {
+        elSosEscalationTimerArea.classList.add('hidden');
+        elSosEscalationStatus.innerHTML = '<span style="color:#fca5a5; font-weight:bold;">🚨 ESCALATED</span>: User unresponsive. Wider circle contacted.';
+        
+        elSosGovernmentCard.style.border = '4px solid #ef4444';
+        elSosGovernmentCard.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+      } else {
+        elSosEscalationStatus.textContent = "SOS Active. Primary trusted contacts notified.";
+        elSosEscalationTimerArea.classList.remove('hidden');
+        appState.sosEscalationCountdown = ESCALATION_TIMEOUT_SECONDS;
+        elLblSosEscalationCountdown.textContent = appState.sosEscalationCountdown;
+
+        elSosGovernmentCard.style.border = '2px solid #ffffff';
+        elSosGovernmentCard.style.backgroundColor = 'rgba(255,255,255,0.15)';
+
+        if (appState.sosEscalationTimerId) clearInterval(appState.sosEscalationTimerId);
+        appState.sosEscalationTimerId = setInterval(() => {
+          appState.sosEscalationCountdown--;
+          elLblSosEscalationCountdown.textContent = appState.sosEscalationCountdown;
+          if (appState.sosEscalationCountdown <= 0) {
+            clearInterval(appState.sosEscalationTimerId);
+            autoEscalateActiveSOS();
+          }
+        }, 1000);
+      }
     }
   }
 
@@ -940,6 +1048,7 @@ document.addEventListener('DOMContentLoaded', () => {
     sosAlertOverlay.classList.add('hidden');
     elInputResolvePin.value = '';
     
+    if (appState.sosEscalationTimerId) clearInterval(appState.sosEscalationTimerId);
     btnSosTrigger.classList.remove('sos-active-alert');
     stopContinuousLocationWatch();
 
@@ -947,6 +1056,44 @@ document.addEventListener('DOMContentLoaded', () => {
       updateStateCard('monitoring');
     } else {
       updateStateCard('safe');
+    }
+  }
+
+  async function autoEscalateActiveSOS() {
+    if (appState.sosEscalationTimerId) clearInterval(appState.sosEscalationTimerId);
+    
+    const activeIncident = appState.incidents.find(i => i.status === 'active');
+    if (!activeIncident) return;
+
+    showToast("Safety check-in timeout! Auto-escalating to wider circle...", "error");
+    elSosEscalationStatus.innerHTML = '<span style="color:#ef4444; font-weight:bold;">Escalating...</span>';
+
+    try {
+      const res = await fetch('/api/sos/escalate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          incidentId: activeIncident.id,
+          durationUnresponsiveMinutes: 1
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        showToast("Escalated alert dispatched to all circles.", "success");
+        await loadIncidents();
+        
+        elSosEscalationTimerArea.classList.add('hidden');
+        elSosEscalationStatus.innerHTML = '<span style="color:#fca5a5; font-weight:bold;">🚨 ESCALATED</span>: User unresponsive. Wider circle contacted.';
+        
+        elSosGovernmentCard.style.border = '4px solid #ef4444';
+        elSosGovernmentCard.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+      } else {
+        showToast(data.error || "Failed to escalate alert.", "error");
+        elSosEscalationStatus.textContent = "SOS Active. Primary trusted contacts notified.";
+      }
+    } catch (err) {
+      console.error("Auto escalation post failed:", err);
+      elSosEscalationStatus.textContent = "SOS Active. Primary trusted contacts notified.";
     }
   }
 
@@ -1534,6 +1681,8 @@ document.addEventListener('DOMContentLoaded', () => {
     elInputContactName.value = '';
     elInputContactPhone.value = '';
     elInputContactEmail.value = '';
+    const elSelectContactTier = document.getElementById('select-contact-tier');
+    if (elSelectContactTier) elSelectContactTier.value = '1';
     btnCancelContact.classList.add('hidden');
     document.getElementById('contact-form-title').textContent = 'Add Trusted Contact';
   }
@@ -1677,7 +1826,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   function triggerCheckinPrompt(reason) {
     elCheckinModal.classList.remove('hidden');
-    let countdown = 15;
+    let countdown = ESCALATION_TIMEOUT_SECONDS;
     elLblCheckinCountdown.textContent = countdown;
 
     if (appState.checkinCountdownId) clearInterval(appState.checkinCountdownId);
@@ -1728,13 +1877,13 @@ document.addEventListener('DOMContentLoaded', () => {
           latitude: lat,
           longitude: lng,
           accuracy: acc,
-          riskLevel: 'medium',
+          riskLevel: 'high',
           reason: `Auto-escalation: Route Deviation check-in timeout. ${reason}`
         })
       });
       
       if (res.ok) {
-        showToast("Alert dispatched successfully.", "success");
+        showToast("High-risk SOS alert dispatched successfully.", "success");
         await endCommute(true);
         loadIncidents();
       }

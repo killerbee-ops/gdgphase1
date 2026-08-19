@@ -122,6 +122,8 @@ async function getContacts(userId) {
 }
 
 async function saveContact(userId, contact) {
+  const tier = parseInt(contact.tier) === 2 ? 2 : 1;
+  
   if (useSupabase) {
     let response;
     if (contact.id) {
@@ -130,26 +132,36 @@ async function saveContact(userId, contact) {
         .update({
           name: contact.name,
           phone: contact.phone,
-          email: contact.email
+          email: contact.email,
+          tier: tier
         })
         .eq('id', contact.id)
         .eq('user_id', userId)
         .select();
     } else {
-      const { count } = await supabase
+      const { data: existingContacts } = await supabase
         .from('contacts')
-        .select('*', { count: 'exact', head: true })
+        .select('id, tier')
         .eq('user_id', userId);
-      if (count >= 3) {
-        throw new Error("Maximum of 3 trusted contacts reached.");
+        
+      const primaryCount = (existingContacts || []).filter(c => (c.tier || 1) === 1).length;
+      const secondaryCount = (existingContacts || []).filter(c => c.tier === 2).length;
+
+      if (tier === 1 && primaryCount >= 3) {
+        throw new Error("Maximum of 3 primary trusted contacts reached.");
       }
+      if (tier === 2 && secondaryCount >= 2) {
+        throw new Error("Maximum of 2 secondary wider-circle contacts reached.");
+      }
+
       response = await supabase
         .from('contacts')
         .insert({
           user_id: userId,
           name: contact.name,
           phone: contact.phone,
-          email: contact.email
+          email: contact.email,
+          tier: tier
         })
         .select();
     }
@@ -164,22 +176,31 @@ async function saveContact(userId, contact) {
           ...db.contacts[idx],
           name: contact.name,
           phone: contact.phone,
-          email: contact.email
+          email: contact.email,
+          tier: tier
         };
       } else {
         throw new Error("Contact not found.");
       }
     } else {
       const userContacts = db.contacts.filter(c => c.user_id === userId);
-      if (userContacts.length >= 3) {
-        throw new Error("Maximum of 3 trusted contacts reached.");
+      const primaryCount = userContacts.filter(c => (c.tier || 1) === 1).length;
+      const secondaryCount = userContacts.filter(c => c.tier === 2).length;
+
+      if (tier === 1 && primaryCount >= 3) {
+        throw new Error("Maximum of 3 primary trusted contacts reached.");
       }
+      if (tier === 2 && secondaryCount >= 2) {
+        throw new Error("Maximum of 2 secondary wider-circle contacts reached.");
+      }
+
       const newContact = {
         id: Math.random().toString(36).substr(2, 9),
         user_id: userId,
         name: contact.name,
         phone: contact.phone,
         email: contact.email,
+        tier: tier,
         created_at: new Date().toISOString()
       };
       db.contacts.push(newContact);

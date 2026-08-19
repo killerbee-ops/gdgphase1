@@ -52,7 +52,7 @@ router.get('/contacts', async (req, res) => {
 
 // Save/Update Contact
 router.post('/contacts', async (req, res) => {
-  const { id, name, phone, email } = req.body;
+  const { id, name, phone, email, tier } = req.body;
   
   const cleanName = sanitizeString(name);
   const cleanPhone = sanitizeString(phone);
@@ -79,7 +79,8 @@ router.post('/contacts', async (req, res) => {
       id: id || null,
       name: cleanName,
       phone: cleanPhone || null,
-      email: cleanEmail || null
+      email: cleanEmail || null,
+      tier: parseInt(tier) === 2 ? 2 : 1
     });
     res.json({ success: true, contact });
   } catch (err) {
@@ -369,25 +370,30 @@ router.post('/sos/trigger', async (req, res) => {
     }
 
     // 8. Dispatch alerts using smart routing rules
+    const isEscalated = req.body.isEscalated === true;
+    const durationUnresponsiveMinutes = req.body.durationUnresponsiveMinutes ? parseInt(req.body.durationUnresponsiveMinutes) : null;
+
     const routeResult = await riskAssessment.routeAlert(
       req.user.id,
       incident.id,
       riskLevel,
       reason,
       mapsLink,
-      shareUrl
+      shareUrl,
+      isEscalated,
+      durationUnresponsiveMinutes
     );
     const { alertBody, emailSubject, dispatched: dispatchResults } = routeResult;
 
     // 9. Save final classification history
     const aiClassification = {
-      riskLevel,
+      riskLevel: isEscalated ? 'escalated' : riskLevel,
       reason,
       confidence: 1.0,
       history: [{
         timestamp: new Date().toISOString(),
-        riskLevel,
-        reason,
+        riskLevel: isEscalated ? 'escalated' : riskLevel,
+        reason: isEscalated ? `Alert escalated — user unresponsive for ${durationUnresponsiveMinutes || 5}m.` : reason,
         confidence: 1.0
       }]
     };
@@ -561,6 +567,94 @@ router.post('/commute/end', async (req, res) => {
     console.log(`[Commute End] User ID: ${req.user.id}.`);
   }
   res.json({ success: true, message: "Commute session ended." });
+});
+
+// 4. SOS Auto-Escalate on Unresponsiveness
+router.post('/sos/escalate', async (req, res) => {
+  const { incidentId, durationUnresponsiveMinutes } = req.body;
+  const duration = durationUnresponsiveMinutes ? parseInt(durationUnresponsiveMinutes) : 5;
+
+  try {
+    let incident = null;
+    if (incidentId) {
+      const incidents = await dbService.getIncidents(req.user.id);
+      incident = incidents.find(i => i.id === incidentId);
+    } else {
+      incident = await dbService.getActiveIncident(req.user.id);
+    }
+
+    if (!incident) {
+      return res.status(404).json({ error: "No active safety incident found to escalate." });
+    }
+
+    const host = req.get('host');
+    const shareUrl = `${req.protocol}://${host}/share.html?id=${incident.id}`;
+    let mapsLink = "Unavailable (Location permission denied/failed)";
+    if (incident.latitude !== null && incident.longitude !== null) {
+      mapsLink = `https://maps.google.com/?q=${incident.latitude},${incident.longitude}`;
+      if (incident.accuracy !== null) {
+        mapsLink += ` (Accuracy: ${Math.round(incident.accuracy)}m)`;
+      }
+    }
+
+    const routeResult = await riskAssessment.routeAlert(
+      req.user.id,
+      incident.id,
+      'high',
+      `Alert escalated — user unresponsive.`,
+      mapsLink,
+      shareUrl,
+      true, // isEscalated
+      duration
+    );
+    const { alertBody, emailSubject, dispatched } = routeResult;
+
+    let aiClassification = incident.ai_classification;
+    if (typeof aiClassification === 'string') {
+      try { aiClassification = JSON.parse(aiClassification); } catch (e) { aiClassification = null; }
+    }
+    if (!aiClassification || typeof aiClassification !== 'object') {
+      aiClassification = {};
+    }
+    if (!Array.isArray(aiClassification.history)) {
+      aiClassification.history = [];
+    }
+
+    aiClassification.history.push({
+      timestamp: new Date().toISOString(),
+      riskLevel: 'escalated',
+      reason: `Alert escalated — user unresponsive for ${duration}m.`,
+      confidence: 1.0
+    });
+
+    aiClassification.riskLevel = 'escalated';
+    aiClassification.reason = `Alert escalated — user unresponsive for ${duration}m.`;
+    aiClassification.confidence = 1.0;
+
+    await dbService.updateIncidentClassification(incident.id, aiClassification);
+
+    if (dbService.checkSupabaseConnected()) {
+      const { createClient } = require('@supabase/supabase-js');
+      const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+      await supabase.from('incidents').update({
+        ai_drafted_message: alertBody
+      }).eq('id', incident.id);
+    } else {
+      incident.ai_drafted_message = alertBody;
+    }
+
+    console.warn(`[SOS Escalated] User ID: ${req.user.id}. Incident ID: ${incident.id}. User unresponsive.`);
+    res.json({
+      success: true,
+      incidentId: incident.id,
+      message: "Safety alert auto-escalated successfully.",
+      ai_classification: aiClassification,
+      dispatched
+    });
+  } catch (err) {
+    console.error(`[API SOS Escalate] User ID: ${req.user.id}. Error:`, err.message);
+    res.status(500).json({ error: "Failed to escalate incident: " + err.message });
+  }
 });
 
 module.exports = router;

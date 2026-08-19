@@ -27,6 +27,7 @@ CREATE TABLE contacts (
     name TEXT NOT NULL,
     phone TEXT,
     email TEXT,
+    tier INTEGER DEFAULT 1, -- 1 = Primary, 2 = Secondary/Wider Circle
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
