@@ -333,8 +333,8 @@ input, select, textarea, button {
   width: 140px;
   height: 140px;
   border-radius: 50%;
-  background-color: var(--primary-brand);
-  border: 6px solid var(--border-color);
+  background-color: var(--danger-color);
+  border: 8px solid rgba(234, 67, 53, 0.15);
   color: #ffffff;
   display: flex;
   flex-direction: column;
@@ -342,7 +342,7 @@ input, select, textarea, button {
   align-items: center;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.165, 0.84, 0.44, 1);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  box-shadow: 0 4px 12px rgba(234, 67, 53, 0.25);
 }
 .btn-sos-pulse-engine:active {
   transform: scale(0.96);
