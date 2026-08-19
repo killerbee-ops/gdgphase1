@@ -2,27 +2,31 @@
 
 /* ================= 1. VARIABLES & SYSTEM DEFAULTS ================= */
 :root {
-  --primary-brand: #0f172a;       /* Deep slate navy */
-  --primary-hover: #1e293b;
-  --accent-color: #0284c7;        /* Trust blue */
-  --accent-light: #e0f2fe;
+  /* Google Material Design 3 Palette */
+  --primary-brand: #1a73e8;       /* Google Blue */
+  --primary-hover: #1557b0;
+  --accent-color: #1a73e8;        /* Google Blue */
+  --accent-light: #e8f0fe;
   
-  --bg-app: #f8fafc;              /* Light neutral slate background */
-  --bg-card: #ffffff;             /* Pure white card backgrounds */
-  --border-color: #e2e8f0;        /* Precise hairline grid borders */
-  --border-focus: #94a3b8;
+  --bg-app: #ffffff;              /* Neutral surface background */
+  --bg-card: #f8f9fa;             /* Surface Container Low */
+  --border-color: #dadce0;        /* Outline variant */
+  --border-focus: #1a73e8;
   
-  --text-main: #0f172a;           /* Strong slate typography */
-  --text-muted: #64748b;          /* Soft body descriptive color */
-  --text-light: #94a3b8;
+  --text-main: #202124;           /* On Surface */
+  --text-muted: #5f6368;          /* On Surface Variant */
+  --text-light: #80868b;
   
-  --success-color: #10b981;       /* Safe green indicator */
-  --success-light: #ecfdf5;
-  --danger-color: #ef4444;        /* SOS warning red */
-  --danger-light: #fef2f2;
-  --danger-hover: #dc2626;
+  --success-color: #34a853;       /* Google Green */
+  --success-light: #e6f4ea;
+  --danger-color: #ea4335;        /* Google Red */
+  --danger-light: #fce8e6;
+  --danger-hover: #c5221f;
+
+  --warning-color: #fbbc04;       /* Google Yellow */
+  --warning-light: #fef7e0;
   
-  --font-stack: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-stack: "Google Sans", Roboto, Inter, system-ui, -apple-system, sans-serif;
   --spacing-unit: 8px;
 }
 
@@ -120,27 +124,29 @@ input, select, textarea, button {
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
+  gap: 16px;
+  padding: 12px 18px;
   border: none;
   background: none;
-  border-radius: 8px;
+  border-radius: 24px; /* Material Design 3 Navigation Pill */
   cursor: pointer;
   text-align: left;
   font-weight: 500;
   color: var(--text-muted);
-  transition: all 0.15s ease;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 .menu-item:hover {
-  background-color: var(--bg-app);
-  color: var(--text-main);
+  background-color: rgba(26, 115, 232, 0.08);
+  color: var(--primary-brand);
 }
 .menu-item.active {
   background-color: var(--accent-light);
-  color: var(--accent-color);
+  color: var(--primary-brand);
+  font-weight: 600;
 }
-.menu-item.active .icon {
-  stroke: var(--accent-color);
+.menu-item .menu-icon {
+  font-size: 20px;
+  color: inherit;
 }
 
 .sidebar-footer {
@@ -235,11 +241,12 @@ input, select, textarea, button {
 
 /* Clean Borders cards */
 .status-card {
-  background-color: var(--bg-card);
+  background-color: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 12px;
-  padding: 16px 20px;
+  border-radius: 16px;
+  padding: 18px 24px;
   margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 .status-card-header {
   display: flex;
@@ -248,8 +255,8 @@ input, select, textarea, button {
   margin-bottom: 6px;
 }
 .status-badge-dot {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   display: inline-block;
 }
@@ -258,25 +265,29 @@ input, select, textarea, button {
 .status-badge-dot.red { background-color: var(--danger-color); box-shadow: 0 0 0 4px var(--danger-light); animation: alertPulse 1.5s infinite; }
 
 .status-badge-text {
-  font-weight: 600;
-  font-size: 0.92rem;
-  color: var(--primary-brand);
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: var(--text-main);
 }
 .status-card-desc {
   color: var(--text-muted);
-  font-size: 0.8rem;
-  margin-left: 18px;
+  font-size: 0.84rem;
+  margin-left: 20px;
 }
 
 /* Detail Card standard */
 .detail-card {
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 24px;
   display: flex;
   flex-direction: column;
   gap: 10px;
+  transition: box-shadow 0.15s ease;
+}
+.detail-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 .card-title-row {
   display: flex;
@@ -289,14 +300,14 @@ input, select, textarea, button {
   gap: 10px;
 }
 .card-title-text h3 {
-  font-size: 1.05rem;
-  font-weight: 600;
-  color: var(--primary-brand);
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--text-main);
 }
 .detail-card-desc {
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   color: var(--text-muted);
-  line-height: 1.4;
+  line-height: 1.45;
 }
 
 /* Dashboard dynamic grid layout */
@@ -314,7 +325,7 @@ input, select, textarea, button {
   padding: 40px 0;
   background-color: var(--bg-card);
   border: 1px solid var(--border-color);
-  border-radius: 12px;
+  border-radius: 16px;
 }
 .btn-sos-pulse-engine {
   width: 140px;
@@ -367,24 +378,24 @@ input, select, textarea, button {
   margin-bottom: 16px;
 }
 .form-group label {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.8rem;
+  font-weight: 500;
   color: var(--text-main);
   text-align: left;
 }
 .form-group input, .form-group select {
-  height: 44px;
-  padding: 0 12px;
+  height: 48px;
+  padding: 0 16px;
   background-color: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px; /* Outlined MD3 style */
   outline: none;
   font-size: 0.88rem;
-  transition: all 0.15s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 .form-group input:focus, .form-group select:focus {
   border-color: var(--accent-color);
-  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  box-shadow: 0 0 0 1px var(--accent-color);
 }
 .input-info-text {
   font-size: 0.72rem;
@@ -398,14 +409,15 @@ input, select, textarea, button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 44px;
-  padding: 0 16px;
-  border-radius: 6px;
-  font-weight: 600;
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px; /* MD3 rounded pill */
+  font-weight: 500;
   font-size: 0.84rem;
   cursor: pointer;
   transition: all 0.15s ease;
   border: 1px solid transparent;
+  text-decoration: none;
 }
 .btn-primary {
   background-color: var(--primary-brand);
@@ -415,12 +427,12 @@ input, select, textarea, button {
   background-color: var(--primary-hover);
 }
 .btn-secondary {
-  background-color: #ffffff;
+  background-color: transparent;
   border-color: var(--border-color);
-  color: var(--text-main);
+  color: var(--primary-brand);
 }
 .btn-secondary:hover {
-  background-color: var(--bg-app);
+  background-color: var(--accent-light);
 }
 
 .button-row {
@@ -440,11 +452,11 @@ input, select, textarea, button {
 }
 .input-horizontal-group select, .input-horizontal-group input {
   flex: 1;
-  height: 44px;
-  padding: 0 12px;
+  height: 48px;
+  padding: 0 16px;
   background-color: #ffffff;
   border: 1px solid var(--border-color);
-  border-radius: 6px;
+  border-radius: 8px;
   outline: none;
 }
 .input-horizontal-group .btn {
@@ -1253,7 +1265,7 @@ input, select, textarea, button {
 
   /* Show Bottom Nav Bar */
   .mobile-bottom-nav {
-    height: 60px;
+    height: 80px;
     background-color: var(--bg-card);
     border-top: 1px solid var(--border-color);
     display: flex;
@@ -1261,6 +1273,7 @@ input, select, textarea, button {
     align-items: center;
     flex-shrink: 0;
     z-index: 1000;
+    padding-bottom: 8px;
   }
   .bottom-nav-item {
     border: none;
@@ -1268,26 +1281,32 @@ input, select, textarea, button {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
     color: var(--text-muted);
     font-weight: 500;
     cursor: pointer;
     flex: 1;
     height: 100%;
     justify-content: center;
+    transition: color 0.15s ease;
   }
   .bottom-nav-item span {
-    font-size: 0.65rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.1px;
   }
-  .bottom-nav-item .icon {
-    width: 20px;
-    height: 20px;
+  .bottom-nav-item .menu-icon {
+    font-size: 22px;
+    padding: 4px 16px;
+    border-radius: 16px;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
   .bottom-nav-item.active {
-    color: var(--accent-color);
+    color: var(--primary-brand);
+    font-weight: 700;
   }
-  .bottom-nav-item.active .icon {
-    stroke: var(--accent-color);
+  .bottom-nav-item.active .menu-icon {
+    background-color: var(--accent-light);
+    color: var(--primary-brand);
   }
 
   /* Content view paddings */
@@ -1355,44 +1374,43 @@ input, select, textarea, button {
   gap: 6px;
 }
 .btn-emergency-call {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border: 1px solid #fca5a5;
+  background-color: var(--danger-color);
+  color: #ffffff;
+  border: none;
   text-decoration: none;
-  padding: 10px 12px;
-  border-radius: 6px;
-  font-size: 0.82rem;
-  font-weight: bold;
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  text-align: left;
-  transition: all 0.15s ease;
-}
-.btn-emergency-call:hover {
-  background-color: #fee2e2;
-  border-color: #f87171;
-  color: #991b1b;
-}
-.btn-secondary-call {
-  background-color: #f8fafc;
-  color: #334155;
-  border: 1px solid #e2e8f0;
-  text-decoration: none;
-  padding: 8px 12px;
-  border-radius: 6px;
-  font-size: 0.8rem;
+  padding: 10px 18px;
+  border-radius: 20px; /* MD3 pill */
+  font-size: 0.84rem;
   font-weight: 500;
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 40px;
+  text-align: left;
+  transition: background-color 0.15s ease;
+}
+.btn-emergency-call:hover {
+  background-color: var(--danger-hover);
+  color: #ffffff;
+}
+.btn-secondary-call {
+  background-color: transparent;
+  color: var(--primary-brand);
+  border: 1px solid var(--border-color);
+  text-decoration: none;
+  padding: 10px 18px;
+  border-radius: 20px; /* MD3 pill */
+  font-size: 0.82rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  min-height: 40px;
   text-align: left;
   transition: all 0.15s ease;
 }
 .btn-secondary-call:hover {
-  background-color: #f1f5f9;
-  border-color: #cbd5e1;
-  color: #0f172a;
+  background-color: var(--accent-light);
+  border-color: var(--primary-brand);
+  color: var(--primary-hover);
 }
 
 
